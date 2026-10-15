@@ -1,4 +1,4 @@
-ก# ☕ Coffee Shop POS System (ระบบบริหารจัดการร้านกาแฟ)
+## Coffee Shop POS System (ระบบบริหารจัดการร้านกาแฟ)
 
 > **วิชา:** System Analysis and Design (การวิเคราะห์และออกแบบระบบ)  
 > **สถาปัตยกรรม:** Boundary-Control-Entity (BCM) Pattern  
@@ -6,7 +6,7 @@
 
 ---
 
-## 📋 ภาพรวมโครงการ (Project Overview)
+## ภาพรวมโครงการ (Project Overview)
 
 ระบบ POS สำหรับร้านกาแฟ พัฒนาตามข้อกำหนดความต้องการและกระบวนการวิเคราะห์ออกแบบระบบ (System Analysis & Design) ครบถ้วน:
 
@@ -16,7 +16,7 @@
 
 ---
 
-## 🏛️ โครงสร้างสถาปัตยกรรม (BCM Architecture)
+## โครงสร้างสถาปัตยกรรม (BCM Architecture)
 
 ```
 project/
@@ -60,7 +60,7 @@ project/
 
 ---
 
-## 🚀 วิธีการติดตั้งและรันระบบ (How to Run)
+## วิธีการติดตั้งและรันระบบ (How to Run)
 
 ### วิธีที่ 1: รันแบบ Single Server (แนะนำสำหรับทดสอบ/ส่งงาน)
 
@@ -108,7 +108,7 @@ Backend จะ serve ตัว React Frontend ที่ build แล้วอั
 
 ---
 
-## 📡 สรุป REST API Endpoints
+## สรุป REST API Endpoints
 
 | Method  | Endpoint                 | รายละเอียด                                                                    |
 | ------- | ------------------------ | ----------------------------------------------------------------------------- |
@@ -119,7 +119,7 @@ Backend จะ serve ตัว React Frontend ที่ build แล้วอั
 
 ---
 
-## ✅ ตรวจสอบตาม Functional Requirements (FR)
+## ตรวจสอบตาม Functional Requirements (FR)
 
 | รหัส      | ข้อกำหนดความต้องการ                                 | สถานะ                                                            |
 | --------- | --------------------------------------------------- | ---------------------------------------------------------------- |
