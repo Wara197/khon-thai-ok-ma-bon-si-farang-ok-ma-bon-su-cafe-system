@@ -1,0 +1,40 @@
+# AI Disclosure Form: แบบเปิดเผยการใช้งานปัญญาประดิษฐ์ (AI Disclosure)
+## โครงการ: ระบบจุดขายและจัดการร้านกาแฟ (Coffee Shop POS System)
+
+**รายวิชา:** 88734065 การวิเคราะห์และออกแบบระบบ (System Analysis and Design)  
+**ทีมผู้พัฒนา:** ทีม 2 คนไทยออกมาบ่งชี้ ฝรั่งออกมาบ่งชู้  
+**วันที่ส่งมอบ:** ตุลาคม 2026  
+
+---
+
+## 1. เครื่องมือ AI ที่ใช้ (AI Tools Utilized)
+
+| เครื่องมือ AI | ผู้ให้บริการ | วัตถุประสงค์ที่ใช้งาน |
+|---|---|---|
+| **Antigravity AI (Claude / Gemini)** | Google DeepMind / Anthropic | ช่วยวิเคราะห์โค้ดเพื่อ Reverse Engineer เอกสารสถาปัตยกรรม, วาด Mermaid Diagram, ตรวจทาน Traceability Matrix และจัดฟอร์แมตเอกสาร Markdown |
+
+---
+
+## 2. ขอบเขตงานที่ให้ AI ช่วยดำเนินการ (AI Assistance Scope)
+
+| งาน | ข้อมูลนำเข้าให้ AI (Input Data) | สิ่งที่ AI ช่วยสร้างหรือปรับปรุง (AI Contribution) |
+|---|---|---|
+| **การจัดทำ Reverse Engineered Diagrams** | โค้ดจริงใน `project/backend/db.js`, `routes/`, `controllers/`, และ `entities/` | ช่วยร่างโครงสร้าง Mermaid Syntax สำหรับ BCM Class Diagram (`wk06`), ER Diagram (`wk07`), และ Sequence Diagram (`wk09`) ให้ตรงกับโค้ดจริง 100% |
+| **การจัดทำเอกสารความต้องการและ SRS** | โค้ดระบบจริง และไฟล์ `wk03-requirements.md` | ช่วยเรียบเรียงเอกสาร IEEE 830 SRS (`wk10-srs.md`) และสร้าง Traceability Matrix เชื่อมโยง FR-01 ถึง FR-08 เข้ากับไฟล์โค้ดและ UI Component |
+| **การออกแบบกรณีทดสอบ (Test Cases)** | REST API Endpoints และ Flow การทำงานของหน้าจอ POS | ช่วยจัดระเบียบตารางผลการทดสอบ `wk13-test-cases.md` และจัดทำแบบประเมิน Usability SUS `wk12-usability-testing.md` |
+| **การจัดทำเอกสารทบทวนคุณภาพโค้ด** | โครงสร้างโฟลเดอร์ BCM และ Best Practices ในวิชา SAD | ร่าง Checklists การตรวจสอบคุณภาพโค้ด (BCM Separation, Transaction Integrity) ใน `wk14-quality-review.md` |
+
+---
+
+## 3. สิ่งที่ AI ไม่ได้ทำ (Work Done Without AI / Human Execution)
+
+- **สถาปัตยกรรมและการพัฒนาซอฟต์แวร์จริง:** การออกแบบโครงสร้างโค้ด BCM, การเขียน Express REST API, การเชื่อมต่อฐานข้อมูล SQLite และการเขียน React Component ดำเนินการโดยทีมนักพัฒนา
+- **การตัดสินใจเชิงธุรกิจและขอบเขตระบบ:** สมาชิกในทีมเป็นผู้กำหนดขอบเขตระบบ (Scope), การเลือกภาษาและเครื่องมือในการพัฒนา (Node.js + React 19 + SQLite)
+- **การทดสอบระบบและการรัน Live Demo:** สมาชิกในทีมเป็นผู้ดำเนินการรันระบบจริง ทดสอบคลิกหน้าจอหน้าร้าน ตรวจสอบคิวบาริสต้า และนำเสนอสดหน้าห้องเรียน
+
+---
+
+## 4. การตรวจสอบความถูกต้องและการปรับปรุงโดยมนุษย์ (Human Review & Verification)
+
+- สมาชิกทุกคนในทีมได้อ่าน ตรวจทาน และยืนยันความถูกต้องของไดอะแกรม ตาราง และข้อกำหนดทุกรายการในเอกสาร
+- ตรวจสอบความถูกต้องของชื่อ-นามสกุล รหัสนักศึกษา และการแบ่งบทบาทหน้าที่ตามระเบียบของรายวิชา
