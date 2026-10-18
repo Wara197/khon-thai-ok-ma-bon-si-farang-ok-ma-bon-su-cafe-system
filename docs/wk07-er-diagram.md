@@ -9,10 +9,17 @@
 
 ```mermaid
 erDiagram
+    BRANCHES ||--o{ ORDERS : "placed at"
     CATEGORIES ||--o{ PRODUCTS : categorizes
     PRODUCTS ||--o{ ORDER_ITEMS : "ordered in"
     PRODUCT_OPTIONS ||--o{ ORDER_ITEMS : "applied to"
     ORDERS ||--o{ ORDER_ITEMS : contains
+
+    BRANCHES {
+        int id PK "รหัสสาขา (AUTO)"
+        text name "ชื่อสาขา เช่น หน้า ม.บูรพา, ห้างแหลมทอง, หาดวอนนภา"
+        text address "ที่ตั้ง/ที่อยู่สาขา"
+    }
 
     CATEGORIES {
         int id PK "รหัสหมวดหมู่ (AUTO)"
@@ -38,6 +45,7 @@ erDiagram
 
     ORDERS {
         int id PK "รหัสออเดอร์ (AUTO)"
+        int branch_id FK "รหัสสาขาที่รับออเดอร์"
         text order_no "เลขออเดอร์ POS-YYYYMMDD-XXXX (UNIQUE)"
         int queue_no "เลขคิวประจำวัน เช่น 1, 2, 3"
         int total_amount "ยอดรวมทั้งหมด (บาท)"
@@ -61,13 +69,14 @@ erDiagram
 
 ## 2. ตารางสรุปรายละเอียด Entity, Primary Key, Foreign Key และ Attribute
 
-| Entity                | Primary Key (PK) | Foreign Key (FK)                                   | Attributes อื่นๆ                                                                 | หน้าที่ในระบบ                                                                         |
-| :-------------------- | :--------------- | :------------------------------------------------- | :------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------ |
-| **`CATEGORIES`**      | `id`             | —                                                  | `name`, `sort_order`                                                             | แยกประเภทเมนู (กาแฟ, ชา, ปั่น, เบเกอรี่) รองรับ 3NF                                   |
-| **`PRODUCTS`**        | `id`             | `category_id` → `CATEGORIES`                       | `name`, `base_price`, `image_url`, `is_active`                                   | เก็บข้อมูลเมนูสินค้าและราคาฐาน                                                        |
-| **`PRODUCT_OPTIONS`** | `id`             | —                                                  | `option_type`, `name`, `extra_price`                                             | ตัวเลือกขนาด/ความหวาน/ท็อปปิง รวมในตาราง Single ตาม option_type                       |
-| **`ORDERS`**          | `id`             | —                                                  | `order_no`, `queue_no`, `total_amount`, `payment_method`, `status`, `created_at` | หัวออเดอร์หลัก เก็บยอดรวม วิธีชำระ และสถานะคิว                                        |
-| **`ORDER_ITEMS`**     | `id`             | `order_id` → `ORDERS`<br>`product_id` → `PRODUCTS` | `quantity`, `unit_price`, `subtotal`, `options_json`                             | Associative Entity แก้ M:N ระหว่าง ORDERS-PRODUCTS เก็บ Snapshot ราคาและตัวเลือก JSON |
+| Entity                | Primary Key (PK) | Foreign Key (FK)                                   | Attributes อื่นๆ                                                                              | หน้าที่ในระบบ                                                                         |
+| :-------------------- | :--------------- | :------------------------------------------------- | :-------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------ |
+| **`BRANCHES`**        | `id`             | —                                                  | `name`, `address`                                                                             | จัดเก็บข้อมูลสาขาของร้านกาแฟ (รองรับระบบ Multi-branch)                                |
+| **`CATEGORIES`**      | `id`             | —                                                  | `name`, `sort_order`                                                                          | แยกประเภทเมนู (กาแฟ, ชา, ปั่น, เบเกอรี่) รองรับ 3NF                                   |
+| **`PRODUCTS`**        | `id`             | `category_id` → `CATEGORIES`                       | `name`, `base_price`, `image_url`, `is_active`                                                | เก็บข้อมูลเมนูสินค้าและราคาฐาน (รองรับ Soft delete ผ่าน is_active)                    |
+| **`PRODUCT_OPTIONS`** | `id`             | —                                                  | `option_type`, `name`, `extra_price`                                                          | ตัวเลือกขนาด/ความหวาน/ท็อปปิง รวมในตาราง Single ตาม option_type                       |
+| **`ORDERS`**          | `id`             | `branch_id` → `BRANCHES`                           | `branch_id`, `order_no`, `queue_no`, `total_amount`, `payment_method`, `status`, `created_at` | หัวออเดอร์หลัก เก็บยอดรวม วิธีชำระ สถานะคิว และสาขาที่สั่ง                            |
+| **`ORDER_ITEMS`**     | `id`             | `order_id` → `ORDERS`<br>`product_id` → `PRODUCTS` | `quantity`, `unit_price`, `subtotal`, `options_json`                                          | Associative Entity แก้ M:N ระหว่าง ORDERS-PRODUCTS เก็บ Snapshot ราคาและตัวเลือก JSON |
 
 ---
 

@@ -16,10 +16,15 @@
 classDiagram
     direction TB
 
-    %% ===== Boundary Layer (Routes) =====
+    %% ===== Boundary Layer (Routes & Views) =====
     class productRoutes {
         <<boundary>>
+        +POST /api/upload
         +GET /api/products
+        +GET /api/categories
+        +POST /api/products
+        +PUT /api/products/:id
+        +DELETE /api/products/:id
     }
     class orderRoutes {
         <<boundary>>
@@ -27,26 +32,46 @@ classDiagram
         +GET /api/orders/queue
         +PATCH /api/orders/:id/status
         +DELETE /api/orders/:id
+        +GET /api/reports/sales
+        +GET /api/branches
     }
 
     %% ===== Control Layer (Controllers) =====
     class productController {
         <<control>>
         +listProducts() Object
+        +listCategories() Object
+        +createProduct(data) Object
+        +updateProduct(id, data) Object
+        +deleteProduct(id) Object
     }
     class orderController {
         <<control>>
         +createOrder(data) Object
-        +getQueue() Object
+        +getQueue(branchId) Object
         +updateStatus(orderId, newStatus) Object
         +cancelOrder(orderId) Object
+        +getSalesReport(branchId) Object
     }
 
     %% ===== Entity Layer (Data Access) =====
+    class Branch {
+        <<entity>>
+        +findAll() Branch[]
+        +findById(id) Branch
+    }
+    class Category {
+        <<entity>>
+        +findAll() Category[]
+        +findById(id) Category
+    }
     class Product {
         <<entity>>
         +findAllActive() Product[]
         +findById(id) Product
+        +create(data) Product
+        +update(id, data) Product
+        +delete(id) void
     }
     class ProductOption {
         <<entity>>
@@ -59,9 +84,10 @@ classDiagram
         +getLastQueueNoToday() int
         +create(data) Object
         +createItem(data) void
-        +findQueue() Order[]
+        +findQueue(branchId) Order[]
         +findById(id) Order
         +updateStatus(id, status) void
+        +getSalesReport(branchId) Object
     }
 
     %% ===== Database Layer =====
@@ -77,14 +103,19 @@ classDiagram
     %% ===== Relationships =====
     productRoutes --> productController : calls
     orderRoutes --> orderController : calls
+    orderRoutes --> Branch : calls
 
     productController --> Product : uses
+    productController --> Category : uses
     productController --> ProductOption : uses
 
     orderController --> Product : uses
     orderController --> ProductOption : uses
     orderController --> Order : uses
+    orderController --> Branch : uses
 
+    Branch --> Database : queries
+    Category --> Database : queries
     Product --> Database : queries
     ProductOption --> Database : queries
     Order --> Database : queries
@@ -160,13 +191,17 @@ classDiagram
 
 ## 3. สรุปหน้าที่ของแต่ละ Class ตาม BCM Pattern
 
-| Class               | Layer          | หน้าที่                                                                        | ไฟล์จริง                           |
-| ------------------- | -------------- | ------------------------------------------------------------------------------ | ---------------------------------- |
-| `productRoutes`     | Boundary       | รับ HTTP GET /api/products ส่งให้ Controller                                   | `routes/productRoutes.js`          |
-| `orderRoutes`       | Boundary       | รับ HTTP POST/GET/PATCH/DELETE สำหรับออเดอร์                                   | `routes/orderRoutes.js`            |
-| `productController` | Control        | จัดกลุ่มเมนูตาม category แปลง base_price เป็น float                            | `controllers/productController.js` |
-| `orderController`   | Control        | Validate (FR-03), คำนวณราคา (FR-05), ออกเลขคิว (FR-04), ตรวจลำดับสถานะ (FR-08) | `controllers/orderController.js`   |
-| `Product`           | Entity         | SELECT จาก `products` + `categories`                                           | `entities/Product.js`              |
-| `ProductOption`     | Entity         | SELECT จาก `product_options`                                                   | `entities/ProductOption.js`        |
-| `Order`             | Entity         | INSERT/SELECT/UPDATE ตาราง `orders` และ `order_items`                          | `entities/Order.js`                |
-| `Database`          | Infrastructure | SQLite3 Promise Wrapper (`run`, `get`, `all`), Auto-setup schema               | `db.js`                            |
+| Class               | Layer          | หน้าที่                                                                                             | ไฟล์จริง                           |
+| ------------------- | -------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| Class               | Layer          | หน้าที่                                                                                             | ไฟล์จริง                           |
+| ------------------- | -------------- | ------------------------------------------------------------------------------                      | ---------------------------------- |
+| `productRoutes`     | Boundary       | รับ HTTP GET/POST/PUT/DELETE /api/products, /api/categories, /api/upload                            | `routes/productRoutes.js`          |
+| `orderRoutes`       | Boundary       | รับ HTTP POST/GET/PATCH/DELETE /api/orders, /api/reports/sales, /api/branches                       | `routes/orderRoutes.js`            |
+| `productController` | Control        | จัดกลุ่มเมนู, จัดการ CRUD เมนูสินค้าและราคา (FR-01, FR-02, FR-04)                                   | `controllers/productController.js` |
+| `orderController`   | Control        | Validate (FR-03), คำนวณราคา (FR-05), ออกเลขคิว (FR-04), ลำดับสถานะ (FR-08), ออกรายงานยอดขาย (FR-05) | `controllers/orderController.js`   |
+| `Branch`            | Entity         | จัดการข้อมูลสาขา (findAll, findById) ในตาราง `branches`                                             | `entities/Branch.js`               |
+| `Category`          | Entity         | จัดการหมวดหมู่สินค้าในตาราง `categories`                                                            | `entities/Category.js`             |
+| `Product`           | Entity         | CRUD ข้อมูลเมนูสินค้าในตาราง `products` (Soft Delete ด้วย is_active)                                | `entities/Product.js`              |
+| `ProductOption`     | Entity         | ดึงข้อมูลตัวเลือกขนาด/ความหวาน/ท็อปปิงจาก `product_options`                                         | `entities/ProductOption.js`        |
+| `Order`             | Entity         | บันทึก/อัปเดตออเดอร์ในตาราง `orders` และ `order_items`, สร้างรายงานยอดขาย                           | `entities/Order.js`                |
+| `Database`          | Infrastructure | SQLite3 Promise Wrapper (`run`, `get`, `all`), Auto-setup schema และ Seeding                        | `db.js`                            |

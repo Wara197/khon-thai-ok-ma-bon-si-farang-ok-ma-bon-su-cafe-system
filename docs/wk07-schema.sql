@@ -7,6 +7,13 @@
 -- รองรับทั้ง SQLite (Development) และ MySQL (Production)
 -- =============================================================================
 
+-- 0. สาขาของร้าน (branches)
+CREATE TABLE IF NOT EXISTS branches (
+  id      INTEGER PRIMARY KEY AUTOINCREMENT,
+  name    TEXT    NOT NULL,           -- ชื่อสาขา เช่น สาขา 1: หน้า ม.บูรพา
+  address TEXT    DEFAULT NULL        -- ที่ตั้งสาขา
+);
+
 -- 1. หมวดหมู่สินค้า (categories)
 CREATE TABLE IF NOT EXISTS categories (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -37,12 +44,14 @@ CREATE TABLE IF NOT EXISTS product_options (
 -- 4. คำสั่งซื้อ / ออเดอร์ (orders)
 CREATE TABLE IF NOT EXISTS orders (
   id             INTEGER PRIMARY KEY AUTOINCREMENT,
+  branch_id      INTEGER NOT NULL DEFAULT 1, -- FK → branches.id
   order_no       TEXT    NOT NULL UNIQUE,  -- เลขออเดอร์ POS-YYYYMMDD-XXXX
   queue_no       INTEGER NOT NULL,          -- เลขคิวประจำวัน (1, 2, 3...)
   total_amount   INTEGER NOT NULL DEFAULT 0, -- ยอดรวม (บาท)
   payment_method TEXT    NOT NULL DEFAULT 'cash', -- 'cash', 'transfer', 'qr'
   status         TEXT    NOT NULL DEFAULT 'pending', -- 'pending','cooking','ready','completed','cancelled'
-  created_at     TEXT    NOT NULL DEFAULT (datetime('now','localtime'))
+  created_at     TEXT    NOT NULL DEFAULT (datetime('now','localtime')),
+  FOREIGN KEY (branch_id) REFERENCES branches(id)
 );
 
 -- 5. รายการสินค้าในออเดอร์ (order_items)
