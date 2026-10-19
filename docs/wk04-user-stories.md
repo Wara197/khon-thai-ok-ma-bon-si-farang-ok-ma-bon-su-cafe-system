@@ -1,5 +1,7 @@
 # Requirements Document v1 เป็น User Stories และ Use Case Diagram
 
+> **หมายเหตุการอ่าน:** User Stories, Acceptance Criteria และตาราง INVEST ในไฟล์นี้เป็นผลวิเคราะห์ความต้องการ ไม่ใช่ผลทดสอบซอฟต์แวร์หรือหลักฐานว่าทุก story ทำเสร็จแล้ว ให้ใช้ [as-built traceability](./as-built-reverse-engineering.md#3-ขอบเขตความสามารถและสถานะ-requirement) ตรวจสถานะโค้ดก่อนสรุปผล
+
 ## 1.Actor ที่เกี่ยวข้องกับระบบ
 
 จากตาราง "ผู้ใช้งานระบบ (Actors)" ใน CASE-STUDY-COFFEE-SHOP-STD.md ทีมระบุ Actor หลักที่ล็อกอินและใช้งานหน้าจอระบบโดยตรง 3 คน

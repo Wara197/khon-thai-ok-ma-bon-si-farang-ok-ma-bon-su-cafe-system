@@ -1,133 +1,85 @@
-## Coffee Shop POS System (ระบบบริหารจัดการร้านกาแฟ)
+# Coffee Shop POS
 
-> **วิชา:** System Analysis and Design (การวิเคราะห์และออกแบบระบบ)  
-> **สถาปัตยกรรม:** Boundary-Control-Entity (BCM) Pattern  
-> **เทคโนโลยี:** React 19 + Vite (Frontend SPA) & Node.js + Express (Backend REST API) & SQLite / MySQL (Database)
+ระบบเว็บสำหรับรับออเดอร์หน้าร้าน แสดงคิวบาริสต้า และดูรายงาน/จัดการเมนูโดยเจ้าของร้าน เอกสารนี้สรุปพฤติกรรมที่ยืนยันจาก source; ตาราง requirement และผลประเมินเก่าบางรายการเป็นเป้าหมายหรือบันทึกกิจกรรม ไม่ใช่หลักฐานว่าระบบทำได้แล้ว
 
----
+เอกสารอ้างอิงหลัก: [รายงาน Reverse-Engineering ตามระบบจริง](docs/as-built-reverse-engineering.md) และ [รายงานโครงงาน](docs/project-report.docx) / [PDF](docs/project-report.pdf)
 
-## ภาพรวมโครงการ (Project Overview)
+## เทคโนโลยีและโครงสร้าง
 
-ระบบ POS สำหรับร้านกาแฟ พัฒนาตามข้อกำหนดความต้องการและกระบวนการวิเคราะห์ออกแบบระบบ (System Analysis & Design) ครบถ้วน:
+- Frontend: React 19 + Vite, JavaScript, CSS
+- Backend: Node.js + Express 4
+- Runtime database: SQLite (`backend/cafe_pos.db`) ผ่าน `sqlite3`
+- สถาปัตยกรรม: Express routes, controllers, entities และ SQLite wrapper
+- มี login/session และ role authorization สำหรับ owner, cashier, barista
+- Barista อ่านยอดคงเหลือและวัตถุดิบใกล้หมดได้; การรับเข้า/แก้ยอด/ตั้งสูตรสงวนให้ owner
+- `mysql2` ยังเป็น dependency แต่ไม่ได้ถูกใช้โดย runtime database code
 
-- **Cashier Screen (พนักงานหน้าร้าน):** เลือกเมนูตามหมวดหมู่, ปรับแต่งขนาด/ระดับความหวาน/ท็อปปิง, คำนวณราคาแบบเรียลไทม์, จัดการตะกร้าสินค้า, เลือกวิธีชำระเงิน (เงินสด/โอน/QR), และพิมพ์ใบเสร็จพร้อมออกเลขคิว
-- **Barista Screen (หน้าจอบาริสต้า):** แสดงคิวแบบเรียลไทม์ (Auto Polling ทุก 3 วินาที), แสดงสูตรการชงแยกตามแก้วอย่างละเอียด, และกดเลื่อนสถานะออเดอร์ (`รอทำ` $\rightarrow$ `กำลังทำ` $\rightarrow$ `พร้อมรับ` $\rightarrow$ `เสร็จสิ้น`)
-- **BCM Architecture (Boundary-Control-Entity):** แยก Layer การทำงานอย่างชัดเจนตามหลักวิศวกรรมซอฟต์แวร์
-
----
-
-## โครงสร้างสถาปัตยกรรม (BCM Architecture)
-
-```
+```text
 project/
 ├── backend/
-│   ├── db/
-│   │   ├── index.js            # DB Gateway (สลับ SQLite / MySQL ผ่าน DB_DIALECT)
-│   │   ├── sqlite.js           # SQLite Adapter & In-memory / File persistence
-│   │   └── mysql.js            # MySQL Adapter & Connection Pool
-│   ├── entities/               # Entity Layer <<entity>>
-│   │   ├── Product.js          # ข้อมูลเมนูสินค้า
-│   │   ├── ProductOption.js    # ตัวเลือก (ขนาด, ความหวาน, ท็อปปิง)
-│   │   └── Order.js            # ข้อมูลออเดอร์, คิว, และ OrderItems
-│   ├── controllers/            # Control Layer <<control>>
-│   │   ├── productController.js # ควบคุม Business Logic การดึงเมนูและตัวเลือก
-│   │   └── orderController.js   # ควบคุม Validation (FR-03), คำนวณราคา (FR-05), ออกคิว (FR-04, FR-07)
-│   ├── routes/                 # Boundary Layer <<boundary>>
-│   │   ├── productRoutes.js    # GET /api/products
-│   │   └── orderRoutes.js      # POST /api/orders, GET /api/orders/queue, PATCH /api/orders/:id/status
-│   └── server.js               # Express Server & SPA Static Fallback
-│
-└── frontend/                   # Frontend SPA (React + Vite + Modern CSS)
-    ├── src/
-    │   ├── App.jsx             # Main Container & Navbar Tab Switcher
-    │   ├── App.css             # Theme Styling (Warm Espresso & Caramel)
-    │   ├── services/
-    │   │   └── api.js          # REST Client API
-    │   └── components/
-    │       ├── Navbar.jsx      # Navigation bar, Active Queue Counter Badge
-    │       ├── cashier/        # หน้าจอแคชเชียร์ (FR-01 ถึง FR-06)
-    │       │   ├── CashierView.jsx
-    │       │   ├── CategoryTabs.jsx
-    │       │   ├── ProductGrid.jsx
-    │       │   ├── ProductCard.jsx
-    │       │   ├── CustomizationModal.jsx
-    │       │   ├── CartSidebar.jsx
-    │       │   └── ReceiptModal.jsx
-    │       └── barista/        # หน้าจอบาริสต้า (FR-07 ถึง FR-08)
-    │           ├── BaristaView.jsx
-    │           └── QueueCard.jsx
+│   ├── db.js                  # SQLite schema, migration, seed เมนู/วัตถุดิบ/สูตร
+│   ├── server.js              # Express API และ static frontend
+│   ├── routes/                # auth, product, order, inventory, user APIs
+│   ├── controllers/           # login, order, product, inventory และ report logic
+│   ├── entities/              # SQLite queries
+│   ├── auth/                  # password hashing และ session/role middleware
+│   └── public/uploads/        # รูปที่อัปโหลด
+└── frontend/src/
+    ├── App.jsx                # สถานะแท็บและสาขาส่วนกลาง
+    ├── services/api.js        # REST client
+    └── components/
+        ├── cashier/
+        ├── barista/
+        └── owner/
 ```
 
----
+## เริ่มใช้งาน
 
-## วิธีการติดตั้งและรันระบบ (How to Run)
+จากโฟลเดอร์ `project/`:
 
-### วิธีที่ 1: รันแบบ Single Server (แนะนำสำหรับทดสอบ/ส่งงาน)
+```bash
+npm run install:all
+npm run build:frontend
+npm start
+```
 
-Backend จะ serve ตัว React Frontend ที่ build แล้วอัตโนมัติบนพอร์ต 3000:
+เปิด `http://localhost:3000` เซิร์ฟเวอร์สร้างตารางและ seed ข้อมูลเริ่มต้นใน startup หากต้องการแยกโหมดพัฒนา ใช้ `npm run dev:backend` และ `npm run dev:frontend`; Vite ทำงานที่พอร์ต 5173 และ proxy `/api` กับ `/uploads` ไปยัง backend พอร์ต 3000
 
-1. **Build Frontend**:
+ครั้งแรกให้สร้างบัญชีเจ้าของร้านจาก terminal แบบ interactive (รหัสผ่านจะไม่แสดงระหว่างพิมพ์):
 
-   ```bash
-   cd project/frontend
-   npm install
-   npm run build
-   ```
+```bash
+cd backend
+npm run create-user -- --username owner --role owner
+```
 
-2. **Start Backend**:
+จากนั้นเข้าสู่ระบบที่หน้าเว็บ บัญชีเจ้าของร้านเพิ่มบัญชีพนักงานและกำหนดบทบาทได้จากแท็บ “บัญชีพนักงาน” รหัสผ่านต้องยาวอย่างน้อย 12 ตัวอักษร สำหรับ production ที่ frontend อยู่คนละ origin ให้กำหนด `FRONTEND_ORIGIN` ใน `backend/.env` เป็น origin เต็มของ frontend (หลาย origin คั่นด้วย comma)
 
-   ```bash
-   cd ../backend
-   npm install
-   npm start
-   ```
+## API ที่มีใน source
 
-3. **เปิดเว็บเบราว์เซอร์**: เข้าใช้งานได้ที่ [http://localhost:3000](http://localhost:3000)
+| Method | Path | หน้าที่ |
+|---|---|---|
+| GET | `/api/products` | หมวดหมู่ เมนูที่เปิดขาย และตัวเลือก |
+| GET | `/api/categories` | หมวดหมู่ |
+| GET | `/api/branches` | สาขา |
+| POST | `/api/upload` | บันทึกรูปจาก base64 |
+| POST | `/api/products` | เพิ่มเมนู |
+| PUT / DELETE | `/api/products/:id` | แก้ไข/ซ่อนเมนู |
+| POST | `/api/orders` | สร้างออเดอร์และบันทึกวิธีชำระที่เลือก |
+| GET | `/api/orders/queue` | รายการคิวที่ยัง active; รับ `branchId` |
+| GET | `/api/orders/queue/stats` | จำนวนคิวตามสถานะ; รับ `branchId` |
+| PATCH / DELETE | `/api/orders/:id/status` / `/api/orders/:id` | เปลี่ยนสถานะ / ยกเลิกคิว |
+| GET | `/api/reports/sales` | รายงาน; รับ `branchId` และ `period` |
+| GET | `/api/orders/report` | alias ของ sales report |
+| GET | `/api/inventory` | owner ดูคลัง/สูตร/movements; barista ดูเฉพาะยอดคงเหลือและ low-stock |
+| POST / PUT | `/api/inventory`, `/api/inventory/:id`, `/api/inventory/:id/receive` | owner เพิ่ม/ปรับ/รับวัตถุดิบ |
+| PUT / DELETE | `/api/recipes`, `/api/recipes/:productId/:inventoryId/:optionType/:optionId` | owner จัดการสูตร รวมถึงสูตรระดับความหวาน |
+| POST / GET / POST | `/api/auth/login`, `/api/auth/me`, `/api/auth/logout` | เข้าสู่ระบบ, ดู session ปัจจุบัน, ออกจากระบบ |
+| GET / POST / PATCH | `/api/users`, `/api/users/:id/active`, `/api/users/:id/password` | owner จัดการบัญชีและสิทธิ์พนักงาน |
 
----
+## ขอบเขตที่ยังไม่มีใน runtime
 
-### วิธีที่ 2: รันแบบ Development Mode (Hot-Reload)
+ระบบมี login, role guard, บัญชีพนักงาน, session cookie, การตัดสต็อกตามสูตร, แจ้งเตือนสต็อกต่ำ และส่วนลดจำนวนเงินบาทแล้ว ส่วน gateway ชำระเงินจริง, ภาษี, WebSocket, ระบบจัดส่ง, การกู้บัญชีด้วยอีเมล และบัญชีเต็มรูปแบบยังอยู่นอกขอบเขต รายงานคืนรายการออเดอร์ล่าสุดได้สูงสุด 50 รายการและ queue stats ใน report เป็นยอดรวมทุกช่วงเวลา รายละเอียดข้อจำกัดและสถานะ requirement อยู่ใน [as-built report](docs/as-built-reverse-engineering.md)
 
-เหมาะสำหรับการแก้ไขโค้ดและทดสอบแบบ Real-time:
+## เอกสารประจำสัปดาห์
 
-1. **เปิด Terminal ที่ 1 (Backend - Port 3000)**:
-
-   ```bash
-   cd project/backend
-   npm run dev
-   ```
-
-2. **เปิด Terminal ที่ 2 (Frontend Vite - Port 5173)**:
-
-   ```bash
-   cd project/frontend
-   npm run dev
-   ```
-
-3. **เปิดเว็บเบราว์เซอร์**: เข้าใช้งานได้ที่ [http://localhost:5173](http://localhost:5173) (Vite มี proxy ส่งคำขอ `/api` ไปยัง Backend 3000 อัตโนมัติ)
-
----
-
-## สรุป REST API Endpoints
-
-| Method  | Endpoint                 | รายละเอียด                                                                    |
-| ------- | ------------------------ | ----------------------------------------------------------------------------- |
-| `GET`   | `/api/products`          | ดึงรายการหมวดหมู่, เมนูสินค้า และตัวเลือกทั้งหมด (ขนาด/หวาน/ท็อปปิง)          |
-| `POST`  | `/api/orders`            | บันทึกการสั่งซื้อ, คำนวณราคา, และออกหมายเลขคิวใหม่                            |
-| `GET`   | `/api/orders/queue`      | ดึงรายการคิวที่ยังไม่เสร็จสิ้น (`pending`, `cooking`, `ready`) สำหรับบาริสต้า |
-| `PATCH` | `/api/orders/:id/status` | อัปเดตสถานะคิว (`cooking`, `ready`, `completed`)                              |
-
----
-
-## ตรวจสอบตาม Functional Requirements (FR)
-
-| รหัส      | ข้อกำหนดความต้องการ                                 | สถานะ                                                            |
-| --------- | --------------------------------------------------- | ---------------------------------------------------------------- |
-| **FR-01** | แสดงหมวดหมู่และรายการสินค้าทั้งหมด                  | ✅ เสร็จสมบูรณ์ (แบ่งหมวด กาแฟ, ชา, ปั่น, เบเกอรี่)              |
-| **FR-02** | ค้นหาและกรองสินค้าตามหมวดหมู่                       | ✅ เสร็จสมบูรณ์ (แท็บกรองตามหมวดหมู่แบบ Interactive)             |
-| **FR-03** | บังคับเลือกขนาด (Size) และเลือกท็อปปิง/ความหวานได้  | ✅ เสร็จสมบูรณ์ (Validation เตือนทันทีหากไม่เลือกขนาด)           |
-| **FR-04** | สร้างเลขออเดอร์และเลขคิวที่ไม่ซ้ำกันในแต่ละวัน      | ✅ เสร็จสมบูรณ์ (`POS-YYYYMMDD-XXXX` และคิว #001, #002...)       |
-| **FR-05** | คำนวณยอดเงินรวมและภาษีตามจริง                       | ✅ เสร็จสมบูรณ์ (คำนวณราคาฐาน + ขนาด + ท็อปปิง แบบเรียลไทม์)     |
-| **FR-06** | รองรับการชำระเงิน (เงินสด, โอน, QR) และพิมพ์ใบเสร็จ | ✅ เสร็จสมบูรณ์ (มีปุ่มพิมพ์ใบเสร็จและแสดงสรุป)                  |
-| **FR-07** | ส่งรายการไปยังหน้าจอบาริสต้าทันที                   | ✅ เสร็จสมบูรณ์ (บันทึกลง Database พร้อมให้หน้าจอบาริสต้าดึงคิว) |
-| **FR-08** | บาริสต้าดูสูตรละเอียดและเลื่อนสถานะออเดอร์ได้       | ✅ เสร็จสมบูรณ์ (แสดงสูตรรายแก้ว และกดเลื่อนสถานะ 1-Click)       |
+รายการเอกสารและคำอธิบายว่าไฟล์ใดเป็น requirement, แบบออกแบบ, แผนทดสอบ หรือผลที่มีหลักฐาน อยู่ที่ [docs/README.md](docs/README.md)

@@ -1,207 +1,193 @@
-# wk06-class-diagram.md: แผนภาพ Class Diagram และ Object Diagram
+# Class Diagram ของระบบตาม Source
 
-# ระบบ Coffee Shop POS
-
-**รายวิชา:** 88734065 การวิเคราะห์และออกแบบระบบ  
-**กิจกรรม:** Workshop สัปดาห์ที่ 6 — Class Diagram & Object Diagram
-
-> **หมายเหตุ:** เอกสารนี้สร้างขึ้นโดย Reverse Engineering จากโค้ดจริงที่พัฒนาแล้ว  
-> ตาม BCM (Boundary-Control-Entity) Architecture ที่ใช้จริงในโปรเจกต์
-
----
-
-## 1. Class Diagram (UML 2.x)
+**สัปดาห์:** 06 — Object-Oriented Analysis & Design
+**แหล่งอ้างอิง:** source ใน `project/backend/`
+**รายละเอียดข้อจำกัด:** [as-built reverse-engineering](./as-built-reverse-engineering.md)
 
 ```mermaid
 classDiagram
-    direction TB
+  direction TB
 
-    %% ===== Boundary Layer (Routes & Views) =====
-    class productRoutes {
-        <<boundary>>
-        +POST /api/upload
-        +GET /api/products
-        +GET /api/categories
-        +POST /api/products
-        +PUT /api/products/:id
-        +DELETE /api/products/:id
-    }
-    class orderRoutes {
-        <<boundary>>
-        +POST /api/orders
-        +GET /api/orders/queue
-        +PATCH /api/orders/:id/status
-        +DELETE /api/orders/:id
-        +GET /api/reports/sales
-        +GET /api/branches
-    }
+  class productRoutes {
+    <<boundary>>
+    +GET /api/products
+    +GET /api/categories
+    +POST /api/products
+    +PUT /api/products/:id
+    +DELETE /api/products/:id
+    +POST /api/upload
+  }
+  class orderRoutes {
+    <<boundary>>
+    +POST /api/orders
+    +GET /api/orders/queue
+    +GET /api/orders/queue/stats
+    +PATCH /api/orders/:id/status
+    +DELETE /api/orders/:id
+    +GET /api/reports/sales
+    +GET /api/orders/report
+    +GET /api/branches
+  }
+  class inventoryRoutes {
+    <<boundary>>
+    +GET /api/inventory
+    +POST /api/inventory
+    +PUT /api/inventory/:id
+    +POST /api/inventory/:id/receive
+    +PUT /api/recipes
+    +DELETE /api/recipes/:productId/:inventoryId/:optionType/:optionId
+  }
+  class authRoutes {
+    <<boundary>>
+    +POST /api/auth/login
+    +GET /api/auth/me
+    +POST /api/auth/logout
+  }
+  class userRoutes {
+    <<boundary>>
+    +GET/POST /api/users
+    +PATCH /api/users/:id/active
+    +PATCH /api/users/:id/password
+  }
+  class productController {
+    <<control>>
+    +listProducts()
+    +listCategories()
+    +createProduct(data)
+    +updateProduct(id,data)
+    +deleteProduct(id)
+  }
+  class orderController {
+    <<control>>
+    +createOrder(data)
+    +getQueue(branchId)
+    +getQueueStats(branchId)
+    +updateStatus(orderId,status)
+    +cancelOrder(orderId)
+    +getSalesReport(branchId,period)
+  }
+  class inventoryController {
+    <<control>>
+    +listInventory()
+    +listStockOverview()
+    +createInventory(data)
+    +updateInventory(id,data)
+    +receiveInventory(id,data)
+    +saveRecipe(data)
+    +removeRecipe(productId,inventoryId,optionType,optionId)
+  }
+  class authController {
+    <<control>>
+    +login(req,res)
+    +currentUser(req,res)
+    +logout(req,res)
+    +listUsers(req,res)
+    +createUser(req,res)
+    +setUserActive(req,res)
+    +resetPassword(req,res)
+  }
+  class authMiddleware {
+    <<security>>
+    +authenticate(req,res,next)
+    +requireRoles(roles)
+    +createSession(userId)
+    +revokeSession(req)
+  }
+  class Branch {
+    <<entity>>
+    +findAll()
+    +findById(id)
+  }
+  class Category {
+    <<entity>>
+    +findAll()
+    +findById(id)
+  }
+  class Product {
+    <<entity>>
+    +findAllActive()
+    +findById(id)
+    +create(data)
+    +update(id,data)
+    +delete(id)
+  }
+  class ProductOption {
+    <<entity>>
+    +findAll()
+    +findById(id)
+    +findByIds(ids)
+  }
+  class Order {
+    <<entity>>
+    +getLastQueueNoToday()
+    +create(data)
+    +createItem(data)
+    +findQueue(branchId)
+    +getQueueStats(branchId)
+    +findById(id)
+    +updateStatus(id,status)
+    +getSalesReport(branchId,period)
+  }
+  class Inventory {
+    <<entity>>
+    +create(data)
+    +findAll()
+    +findStockOverview()
+    +findRequirements(items,connection)
+    +getMovements(limit)
+    +getRecipes()
+    +setRecipe(productId,inventoryId,optionType,optionId,quantity)
+    +receiveStock(id,quantity,note)
+  }
+  class Database {
+    <<database>>
+    +run(sql,params)
+    +get(sql,params)
+    +all(sql,params)
+    +setup()
+  }
 
-    %% ===== Control Layer (Controllers) =====
-    class productController {
-        <<control>>
-        +listProducts() Object
-        +listCategories() Object
-        +createProduct(data) Object
-        +updateProduct(id, data) Object
-        +deleteProduct(id) Object
-    }
-    class orderController {
-        <<control>>
-        +createOrder(data) Object
-        +getQueue(branchId) Object
-        +updateStatus(orderId, newStatus) Object
-        +cancelOrder(orderId) Object
-        +getSalesReport(branchId) Object
-    }
-
-    %% ===== Entity Layer (Data Access) =====
-    class Branch {
-        <<entity>>
-        +findAll() Branch[]
-        +findById(id) Branch
-    }
-    class Category {
-        <<entity>>
-        +findAll() Category[]
-        +findById(id) Category
-    }
-    class Product {
-        <<entity>>
-        +findAllActive() Product[]
-        +findById(id) Product
-        +create(data) Product
-        +update(id, data) Product
-        +delete(id) void
-    }
-    class ProductOption {
-        <<entity>>
-        +findAll() ProductOption[]
-        +findById(id) ProductOption
-        +findByIds(ids) ProductOption[]
-    }
-    class Order {
-        <<entity>>
-        +getLastQueueNoToday() int
-        +create(data) Object
-        +createItem(data) void
-        +findQueue(branchId) Order[]
-        +findById(id) Order
-        +updateStatus(id, status) void
-        +getSalesReport(branchId) Object
-    }
-
-    %% ===== Database Layer =====
-    class Database {
-        <<database>>
-        -db: SQLite3
-        +run(sql, params) Promise
-        +get(sql, params) Promise
-        +all(sql, params) Promise
-        +setup() void
-    }
-
-    %% ===== Relationships =====
-    productRoutes --> productController : calls
-    orderRoutes --> orderController : calls
-    orderRoutes --> Branch : calls
-
-    productController --> Product : uses
-    productController --> Category : uses
-    productController --> ProductOption : uses
-
-    orderController --> Product : uses
-    orderController --> ProductOption : uses
-    orderController --> Order : uses
-    orderController --> Branch : uses
-
-    Branch --> Database : queries
-    Category --> Database : queries
-    Product --> Database : queries
-    ProductOption --> Database : queries
-    Order --> Database : queries
+  productRoutes --> productController
+  orderRoutes --> orderController
+  inventoryRoutes --> inventoryController
+  authRoutes --> authController
+  userRoutes --> authController
+  authRoutes --> authMiddleware
+  orderRoutes --> authMiddleware
+  productRoutes --> authMiddleware
+  inventoryRoutes --> authMiddleware
+  orderRoutes --> Branch : branch listing route
+  productController --> Product
+  productController --> Category
+  productController --> ProductOption
+  orderController --> Product
+  orderController --> ProductOption
+  orderController --> Order
+  orderController --> Inventory
+  inventoryController --> Inventory
+  Branch --> Database
+  Category --> Database
+  Product --> Database
+  ProductOption --> Database
+  Order --> Database
+  Inventory --> Database
 ```
 
----
+## Object Diagram จากข้อมูล Seed
 
-## 2. Object Diagram — ตัวอย่างออเดอร์จริงในระบบ
+แผนภาพนี้เป็น snapshot เชิงตัวอย่างที่ผูกกับข้อมูล seed ใน `backend/db.js` ไม่ใช่ข้อมูลจากการสั่งซื้อสดใน runtime: seed สร้างสินค้า ID 3 เป็นลาเต้, สร้าง order ตัวอย่างเลข `ORD-20261018-001` และผูก order item จำนวน 2 แก้ว ราคาแก้วละ 70 บาท ยอด 140 บาท ตัวแปร primary key ของ order และ item ขึ้นกับฐานข้อมูลที่เริ่มต้น จึงแสดงเป็น `sampleOrder` และ `sampleLine` แทนการสมมติ ID ทั้งนี้สาขาไม่ได้ระบุใน seed order โดยตรงและมีค่า default เป็นสาขา 1.
 
 ```mermaid
-classDiagram
-    direction LR
-
-    class order1 {
-        id = 1
-        order_no = "POS-20261018-0001"
-        queue_no = 1
-        total_amount = 95
-        payment_method = "qr"
-        status = "pending"
-        created_at = "2026-10-18 16:30:00"
-    }
-
-    class item1 {
-        id = 1
-        order_id = 1
-        product_id = 3
-        quantity = 1
-        unit_price = 80
-        subtotal = 80
-        options_json = "{sizeId:2, sweetnessId:6, toppingIds:[9]}"
-    }
-
-    class item2 {
-        id = 2
-        order_id = 1
-        product_id = 9
-        quantity = 1
-        unit_price = 55
-        subtotal = 55
-        options_json = "{sizeId:1, sweetnessId:null, toppingIds:[]}"
-    }
-
-    class productLatte {
-        id = 3
-        name = "ลาเต้ (Latte)"
-        base_price = 60
-        category_id = 1
-    }
-
-    class sizeM {
-        id = 2
-        option_type = "size"
-        name = "M"
-        extra_price = 10
-    }
-
-    class toppingPearl {
-        id = 9
-        option_type = "topping"
-        name = "ไข่มุก"
-        extra_price = 15
-    }
-
-    order1 "1" --> "1..*" item1 : contains
-    order1 "1" --> "1..*" item2 : contains
-    item1 --> productLatte : references
-    item1 --> sizeM : uses
-    item1 --> toppingPearl : uses
+flowchart LR
+  order["sampleOrder<br/>order_no: ORD-20261018-001<br/>branch_id: 1 (default)<br/>queue_no: 1<br/>total_amount: 140 THB<br/>payment: qr<br/>status: completed"]
+  line["sampleLine<br/>quantity: 2<br/>product_id: 3<br/>unit_price: 70 THB<br/>subtotal: 140 THB<br/>size: M (+10)<br/>sweetness: หวาน 50%<br/>toppings: none"]
+  latte["latte<br/>id: 3<br/>ลาเต้ (Latte)<br/>base_price: 60 THB"]
+  order -->|contains| line
+  line -->|references product| latte
 ```
 
----
+ค่าที่แสดงอ้างจาก `seedSampleOrders()` และ `seedMockData()`; เวลา `created_at` ถูกสร้างแบบ relative จากเวลาที่ seed ทำงานจึงไม่กำหนดเป็นค่าคงที่ใน diagram นี้
 
-## 3. สรุปหน้าที่ของแต่ละ Class ตาม BCM Pattern
+## การตีความ
 
-| Class               | Layer          | หน้าที่                                                                                             | ไฟล์จริง                           |
-| ------------------- | -------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| Class               | Layer          | หน้าที่                                                                                             | ไฟล์จริง                           |
-| ------------------- | -------------- | ------------------------------------------------------------------------------                      | ---------------------------------- |
-| `productRoutes`     | Boundary       | รับ HTTP GET/POST/PUT/DELETE /api/products, /api/categories, /api/upload                            | `routes/productRoutes.js`          |
-| `orderRoutes`       | Boundary       | รับ HTTP POST/GET/PATCH/DELETE /api/orders, /api/reports/sales, /api/branches                       | `routes/orderRoutes.js`            |
-| `productController` | Control        | จัดกลุ่มเมนู, จัดการ CRUD เมนูสินค้าและราคา (FR-01, FR-02, FR-04)                                   | `controllers/productController.js` |
-| `orderController`   | Control        | Validate (FR-03), คำนวณราคา (FR-05), ออกเลขคิว (FR-04), ลำดับสถานะ (FR-08), ออกรายงานยอดขาย (FR-05) | `controllers/orderController.js`   |
-| `Branch`            | Entity         | จัดการข้อมูลสาขา (findAll, findById) ในตาราง `branches`                                             | `entities/Branch.js`               |
-| `Category`          | Entity         | จัดการหมวดหมู่สินค้าในตาราง `categories`                                                            | `entities/Category.js`             |
-| `Product`           | Entity         | CRUD ข้อมูลเมนูสินค้าในตาราง `products` (Soft Delete ด้วย is_active)                                | `entities/Product.js`              |
-| `ProductOption`     | Entity         | ดึงข้อมูลตัวเลือกขนาด/ความหวาน/ท็อปปิงจาก `product_options`                                         | `entities/ProductOption.js`        |
-| `Order`             | Entity         | บันทึก/อัปเดตออเดอร์ในตาราง `orders` และ `order_items`, สร้างรายงานยอดขาย                           | `entities/Order.js`                |
-| `Database`          | Infrastructure | SQLite3 Promise Wrapper (`run`, `get`, `all`), Auto-setup schema และ Seeding                        | `db.js`                            |
+Class diagram สรุป boundary/control/entity/security ของ backend ที่มีจริง ไม่ได้แสดง frontend React components เพื่อให้เห็น backend BCM ชัดเจน เส้นทาง upload และ branch listing ทำงานใน route โดยตรง ไม่มีเมธอดใน controller. `Order.getSalesReport()` เป็น query ที่รวมรายงานอยู่ใน Entity ด้วย จึงไม่ใช่ Entity ที่มีแต่ CRUD อย่างเดียว. Inventory GET แยก `listStockOverview()` สำหรับ role barista ออกจาก response รายละเอียดสำหรับ owner; mutation ยัง owner-only. Object Diagram แสดง seed fixture ที่ระบุแหล่งไว้ ไม่ใช่หลักฐานของ order ปัจจุบันหรือผลทดสอบ runtime

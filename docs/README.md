@@ -1,78 +1,38 @@
-# 📁 เอกสารโครงการ Coffee Shop POS System
+# ดัชนีเอกสารโครงการ Coffee Shop POS
 
-**รายวิชา:** 88734065 การวิเคราะห์และออกแบบระบบ (System Analysis and Design)  
-**โครงงาน:** ระบบ POS สำหรับร้านกาแฟ (Coffee Shop POS System)  
-**สถาปัตยกรรม:** BCM (Boundary-Control-Entity) Pattern  
-**เทคโนโลยี:** React 19 + Vite · Node.js + Express · SQLite / MySQL
+อ่าน [เอกสารระบบตามการทำงานจริง](./as-built-reverse-engineering.md) เป็นหลักเมื่ออธิบายพฤติกรรมปัจจุบัน และใช้ [คู่มือไล่ source ทุกไฟล์](./code-tour.md) ตามหน้าที่ของแต่ละ source module. เอกสารรายสัปดาห์เป็นหลักฐานการวิเคราะห์/ออกแบบตามเวลาที่ทำงาน ข้อกำหนดหรือ wireframe อาจอธิบายเป้าหมายที่ยังไม่ implement และผลทดสอบ/สำรวจต้องอ้างอิงหลักฐานการเก็บข้อมูล ไม่อนุมานจากซอร์สโค้ด
 
----
+## เอกสารรวมเล่มตามแนวทาง wk15
 
-## 👥 สมาชิกทีม: ทีม 2 คนไทยออกมาบ่งชี้ ฝรั่งออกมาบ่งชู้
+- [รายงานโครงงานฉบับสมบูรณ์ DOCX](./project-report.docx)
+- [รายงานโครงงานฉบับสมบูรณ์ PDF](./project-report.pdf)
+- [บันทึก Reverse-Engineering และ traceability](./as-built-reverse-engineering.md)
+- [คู่มือไล่ source code ทุกไฟล์](./code-tour.md)
+- [แนวทางนำเสนอและ Live Demo](./presentation-guide.md)
 
-| ลำดับ | ชื่อ-นามสกุล          | รหัสนักศึกษา | บทบาท        |
-| ----- | --------------------- | ------------ | ------------ |
-| 1     | [นายวราวุฒิ จำนงค์ผล] | [67160197]   | Project Lead |
-| 2     | [นายณภัทร ทองนาค]     | [67160182]   | Analyst      |
-| 3     | [นายปฏิญญา พูลผล]     | [67160016]   | Designer     |
-| 4     | [นายณัฐวุฒิ รู้การนา] | [67160028]   | Developer    |
-| 5     | [นายธนพล ภู่เพ็ง]     | [67160396]   | Documenter   |
+## เอกสารตามสัปดาห์
 
----
+| สัปดาห์ | ไฟล์ | ประเภท/ขอบเขต |
+|---|---|---|
+| 01 | [wk01-team-charter.md](./wk01-team-charter.md) | ข้อตกลงทีมและแผนงาน |
+| 02 | [wk02-feasibility-report.md](./wk02-feasibility-report.md) | ความเป็นไปได้และกระบวนการ; เป็นการวิเคราะห์/ประมาณการ |
+| 03 | [wk03-requirements.md](./wk03-requirements.md) | Baseline requirements; สถานะจริงดู matrix ใน as-built report |
+| 04 | [wk04-user-stories.md](./wk04-user-stories.md) | User stories / acceptance criteria; ไม่ใช่หลักฐานการ implement |
+| 06 | [wk06-class-diagram.md](./wk06-class-diagram.md) | Class/BCM เทียบ source และ Object Diagram จาก seed fixture |
+| 07 | [wk07-er-diagram.md](./wk07-er-diagram.md), [wk07-schema.sql](./wk07-schema.sql) | ER และ SQLite schema; schema runtime สร้างจาก `backend/db.js` |
+| 09 | [wk09-sequence-diagram.md](./wk09-sequence-diagram.md) | ลำดับคำขอ API ตาม source |
+| 09 | [sequence-diagrams.md](./sequence-diagrams.md) | ชี้ไปยัง sequence diagram ชุดเดียวกัน |
+| 10 | [wk10-wireframe.md](./wk10-wireframe.md) | แบบ UI เป้าหมายพร้อมบันทึกความต่างจากหน้าจอจริง |
+| 10 | [wk10-srs.md](./wk10-srs.md) | SRS as-built และข้อจำกัด |
+| 11 | [wk11-architecture.md](./wk11-architecture.md) | Architecture 4+1 Views ของ runtime ปัจจุบัน |
+| 12 | [wk12-usability-testing.md](./wk12-usability-testing.md) | บันทึกผล usability เดิม; ตัวเลขเป็นรายงานกิจกรรมและยังไม่ revalidate |
+| 13 | [wk13-test-cases.md](./wk13-test-cases.md), [wk13-execution-log.md](./wk13-execution-log.md) | Test plan และผล manual API smoke test; แยกจาก UI E2E |
+| 14 | [wk14-quality-review.md](./wk14-quality-review.md) | Code review จาก source โดยแยกสิ่งที่วัดไม่ได้ |
+| — | [ai-disclosure.md](./ai-disclosure.md) | การเปิดเผยการช่วยงานด้วย AI |
 
-## 📋 สารบัญเอกสารตามสัปดาห์
+## หลักการอ่านสถานะ
 
-| สัปดาห์  | เอกสาร                                             | ลิงก์                                                                             |
-| -------- | -------------------------------------------------- | --------------------------------------------------------------------------------- |
-| **⭐ รวมเล่ม** | **รายงานโครงงานฉบับสมบูรณ์ (Final Project Report)** | **[project-report.docx](./project-report.docx)** · **[project-report.pdf](./project-report.pdf)** |
-| **wk01** | Team Charter (ข้อตกลงทีม + SDLC)                   | [wk01-team-charter.md](./wk01-team-charter.md)                                    |
-| **wk02** | Feasibility Study + BPMN                           | [wk02-feasibility-report.md](./wk02-feasibility-report.md)                        |
-| **wk03** | Requirements (FR + NFR + Use Cases)                | [wk03-requirements.md](./wk03-requirements.md)                                  |
-| **wk04** | User Stories (INVEST + Use Case Diagram)           | [wk04-user-stories.md](./wk04-user-stories.md)                                  |
-| **wk06** | Class Diagram + Object Diagram (BCM)               | [wk06-class-diagram.md](./wk06-class-diagram.md)                                  |
-| **wk07** | ER Diagram + Database Schema                       | [wk07-er-diagram.md](./wk07-er-diagram.md) · [wk07-schema.sql](./wk07-schema.sql) |
-| **wk09** | Sequence Diagrams (BCM Flow)                       | [sequence-diagrams.md](./sequence-diagrams.md) · [wk09-sequence-diagram.md](./wk09-sequence-diagram.md) |
-| **wk10** | Wireframe & Input/Output Design                    | [wk10-wireframe.md](./wk10-wireframe.md)                                          |
-| **wk10** | Software Requirements Specification (SRS)          | [wk10-srs.md](./wk10-srs.md)                                                      |
-| **wk11** | Architecture Diagram (Physical + Development View) | [wk11-architecture.md](./wk11-architecture.md)                                    |
-| **wk12** | Usability Testing Report (NFR-03 & SUS Score)      | [wk12-usability-testing.md](./wk12-usability-testing.md)                          |
-| **wk13** | System Integration & E2E Testing (TC-01 to TC-11)  | [wk13-test-cases.md](./wk13-test-cases.md)                                        |
-| **wk14** | Quality Review & Code Review Checklist             | [wk14-quality-review.md](./wk14-quality-review.md)                                |
-| **wk15** | Presentation & Live Demo Guide (สคริปต์นำเสนอ)     | [presentation-guide.md](./presentation-guide.md)                                  |
-| **Etc.** | AI Disclosure Form (แบบเปิดเผยการใช้ AI)           | [ai-disclosure.md](./ai-disclosure.md)                                            |
-
----
-
-## 🚀 วิธีรันระบบ
-
-```bash
-# 1. Build Frontend
-cd project/frontend
-npm install && npm run build
-
-# 2. Start Backend (Port 3000)
-cd ../backend
-npm install && npm start
-
-# 3. เปิดเว็บ
-# http://localhost:3000
-```
-
----
-
-## 📡 REST API Endpoints
-
-| Method   | Endpoint                 | รายละเอียด                                                |
-| -------- | ------------------------ | --------------------------------------------------------- |
-| `GET`    | `/api/products`          | ดึงเมนูทั้งหมด + ตัวเลือก (Cashier POS View)              |
-| `GET`    | `/api/categories`        | ดึงหมวดหมู่สินค้าทั้งหมด                                  |
-| `POST`   | `/api/upload`            | อัปโหลดไฟล์รูปภาพเมนูสินค้า (Multer / Base64)             |
-| `POST`   | `/api/products`          | เพิ่มเมนูสินค้าใหม่ (Owner Menu Management)               |
-| `PUT`    | `/api/products/:id`      | แก้ไขเมนูและราคาขาย (Owner Menu Management)               |
-| `DELETE` | `/api/products/:id`      | ลบเมนูสินค้า (Soft delete ด้วย is_active = 0)             |
-| `POST`   | `/api/orders`            | สร้างออเดอร์ใหม่ พร้อมคำนวณราคาและออกเลขคิว               |
-| `GET`    | `/api/orders/queue`      | ดึงคิวสำหรับบาริสต้า (รองรับกรอง branchId)                |
-| `PATCH`  | `/api/orders/:id/status` | อัปเดตสถานะคิว (pending → cooking → ready → completed)    |
-| `DELETE` | `/api/orders/:id`        | ยกเลิกออเดอร์ (เฉพาะ pending / cooking)                   |
-| `GET`    | `/api/branches`          | ดึงรายชื่อสาขาทั้งหมด (Multi-Branch)                      |
-| `GET`    | `/api/reports/sales`     | ดึงรายงานยอดขาย สถิติ และประวัติออเดอร์ (Owner Dashboard) |
-
+- **ทำงานจากโค้ด:** มี implementation ใน routes/controllers/entities/components ที่อ้างถึง
+- **บางส่วน/มีข้อจำกัด:** มี code path แต่ขอบเขตไม่ครบตาม requirement หรือมีเงื่อนไขที่รายงานไว้
+- **ยังไม่พบใน runtime:** ไม่พบ schema/API/UI ที่ทำหน้าที่ดังกล่าว
+- **ยังไม่ยืนยัน:** ต้องมีการทดสอบ runtime, usability, performance หรือ security แยกต่างหาก

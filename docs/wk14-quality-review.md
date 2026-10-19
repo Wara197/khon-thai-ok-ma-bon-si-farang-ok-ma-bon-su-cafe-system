@@ -1,108 +1,44 @@
-# wk14-quality-review.md: รายงาน Quality Review & Code Review
+# Code Review จาก Source ปัจจุบัน
 
-# ระบบ Coffee Shop POS
+**สัปดาห์:** 14 — Quality Review
+**ขอบเขต:** ตรวจอ่าน source ใน `project/backend/` และ `project/frontend/src/` ไม่ใช่ penetration test, performance test หรือ E2E execution
+**วันตรวจ:** 19 ตุลาคม 2026
 
-**รายวิชา:** 88734065 การวิเคราะห์และออกแบบระบบ  
-**กิจกรรม:** Workshop สัปดาห์ที่ 14 — Quality Review
+## 1. ความสามารถที่มีเส้นทางโค้ด
 
----
+| หัวข้อ | Source ที่พบ | ผลอ่าน source |
+|---|---|---|
+| โหลดเมนูและตัวเลือก | `Product.findAllActive()`, `ProductOption.findAll()`, `GET /api/products` | มี implementation |
+| ตรวจสอบ/คำนวณ order | `orderController.createOrder()` | ตรวจรายการ/สินค้า/จำนวน/size ของเครื่องดื่ม/payment; คิด base + option + qty |
+| สร้างเลข | transaction ใน `orderController.createOrder()` และ unique `order_no` | จองเลขคิวแยกสาขาด้วย `BEGIN IMMEDIATE`; insert order อยู่ใน transaction เดียวกัน |
+| Order persistence | transaction ใน `orderController.createOrder()` และ `cancelOrder()` | สร้าง order/items/ตัด stock และคืน stock ตอนยกเลิกแบบ atomic |
+| สถานะ | `updateStatus()` / `cancelOrder()` | รับเฉพาะสถานะถัดไป; cancel ได้เฉพาะ pending/cooking |
+| รายงาน | `Order.getSalesReport()` | มี sales periods, payment, top 5, recent 50; queue statuses ไม่ได้ใช้ report period |
+| Menu delete | `Product.delete()` | soft delete ผ่าน `is_active=0` |
+| สต็อก | `Inventory` entity/routes และ order controller | มีสูตร base/override ตาม size/temperature/sweetness/bakery option, seed น้ำตาลตามระดับหวาน, รับเข้า/movement, low-stock alert, ตรวจ/ตัด/คืนใน transaction; Barista อ่าน stock overview ได้แต่แก้ไม่ได้ |
+| Authentication | auth controllers/middleware และ user routes | password hash, expiring sessions, role guard; owner จัดการผู้ใช้ |
 
-## 1. ตรวจสอบความสอดคล้องกับ Functional Requirements (FR Checklist)
+## 2. ประเด็นที่ควรจัดการก่อนนำใช้ข้อมูลจริง
 
-| รหัส       | Functional Requirement                   | สถานะ   | หลักฐาน (ไฟล์/โค้ด)                                        |
-| ---------- | ---------------------------------------- | ------- | ---------------------------------------------------------- |
-| **FR-01**  | แสดงเมนูที่เปิดขายพร้อมชื่อและราคา       | ✅ ผ่าน | `Product.findAllActive()` → `GET /api/products`            |
-| **FR-02**  | ให้พนักงานเลือกขนาด ระดับหวาน และท็อปปิง | ✅ ผ่าน | `CustomizationModal.jsx` แสดงกลุ่มตัวเลือกตามประเภทสินค้า  |
-| **FR-03**  | ตรวจสอบข้อมูลก่อนยืนยันออเดอร์           | ✅ ผ่าน | `orderController.createOrder()` → HTTP 400 ถ้าไม่เลือกขนาด |
-| **FR-04**  | สร้างเลขออเดอร์และเลขคิวที่ไม่ซ้ำ        | ✅ ผ่าน | `POS-YYYYMMDD-XXXX`, Queue #001, #002...                   |
-| **FR-05**  | คำนวณยอดรวมอัตโนมัติ                     | ✅ ผ่าน | `unit_price = base + size + toppings`                      |
-| **FR-06**  | รองรับการชำระเงิน 3 แบบ                  | ✅ ผ่าน | `cash`, `transfer`, `qr` ใน CartSidebar                    |
-| **FR-07**  | ส่งออเดอร์ไปหน้าจอบาริสต้าทันที          | ✅ ผ่าน | Polling `GET /api/orders/queue` ทุก 3 วินาที               |
-| **FR-08**  | บาริสต้าเปลี่ยนสถานะออเดอร์ได้           | ✅ ผ่าน | `PATCH /api/orders/:id/status` ตรวจลำดับสถานะ              |
-| **UC-07**  | จัดการเมนูและราคาขาย (Menu Management)   | ✅ ผ่าน | `MenuManager.jsx` + `POST/PUT/DELETE /api/products`        |
-| **UC-08**  | รายงานยอดขายและสถิติ (Owner Analytics)   | ✅ ผ่าน | `OwnerView.jsx` + `GET /api/reports/sales`                 |
-| **NFR-MB** | รองรับการทำงานหลายสาขา (Multi-Branch)    | ✅ ผ่าน | `Branch.js` (3 สาขา), Filter ที่ Navbar, Barista, Owner    |
+| ระดับ | Finding | ผลกระทบ/เหตุผล |
+|---|---|---|
+| P1 | ยังไม่มี MFA/password recovery/audit log | บัญชีใช้รหัสผ่านกับ session อายุ 12 ชั่วโมง; ไม่มี self-service recovery หรือบันทึกเหตุการณ์เปลี่ยนสิทธิ์ |
+| P2 | `orders.branch_id` ไม่มี foreign key | SQLite foreign keys เปิดอยู่ แต่ DDL ไม่กำหนด FK สำหรับสาขาบนออเดอร์ |
+| P2 | upload รับ base64 และไม่ validate image bytes | ควรตรวจ file signature/MIME/size และจัดการ quota ก่อนใช้จริง |
+| P2 | sales report จำกัด ledger 50; queue counts รวมทุกช่วงเวลา | ผู้ใช้ต้องเข้าใจข้อจำกัดของข้อมูลและตัวกรอง |
+| P3 | `mysql2`/MySQL schema แยกจาก SQLite runtime | ทำให้เอกสาร/ผู้พัฒนาสับสนว่า runtime ใช้ DB ใด |
 
----
+## 3. Observed architecture
 
-## 2. ตรวจสอบ BCM Architecture Compliance
+มี routes, controllers, entities และ `db.js` wrapper จริง แต่บาง route จัดการสาขา/upload โดยตรง และ `Order` entity มี aggregate report logic จึงไม่ควรระบุว่า routes “ไม่มี business logic ทุกกรณี” หรือ Entity “มีแต่ CRUD เท่านั้น”
 
-| Layer                        | กฎที่ต้องปฏิบัติ                      | สถานะ                                          |
-| ---------------------------- | ------------------------------------- | ---------------------------------------------- |
-| **Boundary** (`routes/`)     | ห้ามมี Business Logic                 | ✅ Routes ส่งต่อให้ Controller เท่านั้น        |
-| **Control** (`controllers/`) | Business Logic, Validation, คำนวณราคา | ✅ `orderController.js` มี Validate + คำนวณครบ |
-| **Entity** (`entities/`)     | SQL เท่านั้น ห้ามคำนวณราคา            | ✅ Entity มีแค่ `db.run/get/all`               |
-| **Database** (`db.js`)       | Connection wrapper + setup            | ✅ `run()`, `get()`, `all()` + `setup()`       |
+## 4. สิ่งที่ยังไม่ประเมิน
 
----
+ยังไม่มีหลักฐานจากการทดสอบรอบนี้สำหรับ latency, 2-second load target, 5-second end-to-end target, SUS, browser compatibility, accessibility conformance, SQL injection test, XSS test, file upload security หรือ availability. `npm run build`/lint เป็น static checks ที่ไม่ยืนยันประเด็นเหล่านั้น
 
-## 3. Code Review — จุดสำคัญที่ตรวจสอบ
+## 5. ลำดับข้อเสนอแนะ
 
-### 3.1 Exception Flow E1: ข้อมูลไม่ครบ (FR-03)
-
-```js
-// orderController.js
-if (!sizeId) {
-  return { status: 400, body: { error: "กรุณาเลือกขนาดเครื่องดื่ม (sizeId)" } };
-}
-```
-
-**ผล**: ✅ ส่ง HTTP 400 ถ้าไม่เลือกขนาด — ตรงกับ Exception E1
-
-### 3.2 Exception Flow E4: ห้ามย้อนสถานะ (FR-08)
-
-```js
-// orderController.js
-const statusOrder = { pending: 0, cooking: 1, ready: 2, completed: 3 };
-if (statusOrder[newStatus] <= statusOrder[order.status]) {
-  return { status: 400, body: { error: "ไม่สามารถเปลี่ยนสถานะย้อนกลับได้" } };
-}
-```
-
-**ผล**: ✅ ป้องกันการย้อนสถานะ — ตรงกับ Exception E4
-
-### 3.3 การคำนวณราคา (FR-05)
-
-```js
-// orderController.js
-let unitPrice = product.base_price; // ราคาฐาน
-unitPrice += sizeOption.extra_price; // +ขนาด
-for (const topping of toppings) {
-  unitPrice += topping.extra_price; // +ท็อปปิง
-}
-const subtotal = unitPrice * quantity;
-```
-
-**ผล**: ✅ คำนวณถูกต้อง Integer arithmetic ไม่มีปัญหา Float
-
-### 3.4 รูปแบบเลขออเดอร์ (FR-04)
-
-```js
-// orderController.js
-const orderNo = `POS-${dateStr}-${String(queueNo).padStart(4, "0")}`;
-// ตัวอย่าง: POS-20261018-0001
-```
-
-**ผล**: ✅ รูปแบบถูกต้องตาม FR-04
-
----
-
-## 4. ตรวจสอบ Non-Functional Requirements (NFR)
-
-| รหัส       | NFR                                    | การตรวจสอบ                          | ผล      |
-| ---------- | -------------------------------------- | ----------------------------------- | ------- |
-| **NFR-01** | เปิดหน้ารับออเดอร์ใน < 2 วินาที        | SQLite local query รวด < 100ms      | ✅ ผ่าน |
-| **NFR-02** | ส่งออเดอร์ถึงบาริสต้าใน < 5 วินาที     | Polling ทุก 3 วินาที ตอบสนองใน < 5s | ✅ ผ่าน |
-| **NFR-03** | ผู้ใช้ใหม่สร้างออเดอร์สำเร็จ 4/5 ครั้ง | UI มี Validation Error ชัดเจน       | ✅ ผ่าน |
-| **NFR-04** | รองรับ Tablet และ Desktop ≥ 768px      | CSS Responsive ใน App.css           | ✅ ผ่าน |
-
----
-
-## 5. จุดที่ควรปรับปรุงในอนาคต (Future Improvements)
-
-| จุด                          | รายละเอียด                                                                     | Priority |
-| ---------------------------- | ------------------------------------------------------------------------------ | -------- |
-| **FR-09 ยังไม่สมบูรณ์**      | ระบบตัดสต็อกวัตถุดิบยังไม่ได้พัฒนา                                             | Medium   |
-| **FR-10 ยังไม่มี**           | หน้ารายงานยอดขายยังไม่ได้พัฒนา                                                 | Medium   |
-| **Transaction Safety**       | SQLite ไม่มี Transaction แบบ BEGIN/COMMIT ใน Entity (ใช้ sequential async แทน) | Low      |
-| **Real-time ด้วย WebSocket** | เปลี่ยนจาก Polling เป็น WebSocket เพื่อประสิทธิภาพที่ดีขึ้น                    | Low      |
+1. ตรวจ upload file signature/MIME/size และเพิ่ม quota.
+2. พิจารณา MFA, password recovery และ audit log ก่อนเปิดใช้งานภายนอก.
+3. เพิ่ม foreign key สำหรับ `orders.branch_id` ผ่าน migration ที่เข้ากันได้กับข้อมูลเดิม.
+4. กำหนด report metrics/period ให้สอดคล้อง และเพิ่ม tests ที่ทำซ้ำได้.
