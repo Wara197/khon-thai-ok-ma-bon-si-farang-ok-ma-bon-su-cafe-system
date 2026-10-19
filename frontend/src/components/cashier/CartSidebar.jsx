@@ -42,10 +42,15 @@ export default function CartSidebar({
         productId: item.productId,
         quantity: item.quantity,
         temperatureId: item.temperatureId,
+        temperatureName: item.temperatureName,
         sizeId: item.sizeId,
+        sizeName: item.sizeName,
         sweetnessId: item.sweetnessId,
+        sweetnessName: item.sweetnessName,
         toppingIds: item.toppingIds || [],
+        toppingNames: item.toppingNames || [],
         bakeryOptionId: item.bakeryOptionId,
+        bakeryOptionName: item.bakeryOptionName,
       })),
       discountAmount: Math.min(Math.max(Number(discountAmount) || 0, 0), totalAmount),
     });
@@ -133,7 +138,9 @@ export default function CartSidebar({
                     )}
                     {item.sweetnessName && (
                       <span className="cart-badge sweetness">
-                        {item.sweetnessName.split(" ")[0]}
+                        {item.sweetnessName.match(/\d+\s*%/)?.[0]
+                          ? `หวาน ${item.sweetnessName.match(/\d+\s*%/)[0]}`
+                          : item.sweetnessName}
                       </span>
                     )}
                     {item.toppingNames && item.toppingNames.length > 0 && (

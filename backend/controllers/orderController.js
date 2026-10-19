@@ -45,11 +45,6 @@ async function createOrder(data) {
       toppingIds,
       temperatureId,
       bakeryOptionId,
-      temperatureName,
-      sizeName,
-      sweetnessName,
-      toppingNames,
-      bakeryOptionName,
     } = item;
 
     // Validate: ต้องมี productId และ quantity
@@ -79,11 +74,17 @@ async function createOrder(data) {
 
     // คำนวณราคา: base_price + ประเภทเครื่องดื่ม (ร้อน/เย็น/ปั่น) + ขนาด + ท็อปปิง
     let unitPrice = product.base_price;
+    let selectedTemperature = null;
+    let selectedSize = null;
+    let selectedSweetness = null;
+    let selectedToppings = [];
+    let selectedBakeryOption = null;
 
     // 1. ตัวเลือกประเภทเครื่องดื่ม (ร้อน/เย็น/ปั่น)
     if (temperatureId) {
       const tempOption = await ProductOption.findById(temperatureId);
       if (!tempOption || tempOption.option_type !== "temperature") return { status: 400, body: { error: "ประเภทเครื่องดื่มไม่ถูกต้อง" } };
+      selectedTemperature = tempOption;
       unitPrice += tempOption.extra_price;
     }
 
@@ -91,12 +92,14 @@ async function createOrder(data) {
     if (sizeId) {
       const sizeOption = await ProductOption.findById(sizeId);
       if (!sizeOption || sizeOption.option_type !== "size") return { status: 400, body: { error: "ขนาดแก้วไม่ถูกต้อง" } };
+      selectedSize = sizeOption;
       unitPrice += sizeOption.extra_price;
     }
 
     if (sweetnessId) {
       const sweetnessOption = await ProductOption.findById(sweetnessId);
       if (!sweetnessOption || sweetnessOption.option_type !== "sweetness") return { status: 400, body: { error: "ระดับความหวานไม่ถูกต้อง" } };
+      selectedSweetness = sweetnessOption;
     }
 
     // 3. ท็อปปิงเสริม (ถ้ามี)
@@ -105,6 +108,7 @@ async function createOrder(data) {
       if (toppings.length !== toppingIds.length || toppings.some((topping) => topping.option_type !== "topping")) {
         return { status: 400, body: { error: "ท็อปปิงไม่ถูกต้อง" } };
       }
+      selectedToppings = toppings;
       for (const topping of toppings) {
         unitPrice += topping.extra_price;
       }
@@ -114,6 +118,7 @@ async function createOrder(data) {
     if (bakeryOptionId) {
       const bakeryOpt = await ProductOption.findById(bakeryOptionId);
       if (!bakeryOpt || bakeryOpt.option_type !== "bakery_option") return { status: 400, body: { error: "ตัวเลือกเบเกอรี่ไม่ถูกต้อง" } };
+      selectedBakeryOption = bakeryOpt;
       unitPrice += bakeryOpt.extra_price;
     }
 
@@ -123,15 +128,15 @@ async function createOrder(data) {
     // เก็บข้อมูลตัวเลือกเป็น JSON ครบถ้วน
     const optionsJson = JSON.stringify({
       temperatureId: temperatureId || null,
-      temperatureName: temperatureName || null,
+      temperatureName: selectedTemperature?.name || null,
       sizeId: sizeId || null,
-      sizeName: sizeName || null,
+      sizeName: selectedSize?.name || null,
       sweetnessId: sweetnessId || null,
-      sweetnessName: sweetnessName || null,
+      sweetnessName: selectedSweetness?.name || null,
       toppingIds: toppingIds || [],
-      toppingNames: toppingNames || [],
+      toppingNames: selectedToppings.map((topping) => topping.name),
       bakeryOptionId: bakeryOptionId || null,
-      bakeryOptionName: bakeryOptionName || null,
+      bakeryOptionName: selectedBakeryOption?.name || null,
       isBakery: !!isBakery,
     });
 

@@ -153,7 +153,9 @@ export default function QueueCard({
         {sizeName && <span className="formula-tag size">{sizeName}</span>}
         {sweetnessName && (
           <span className="formula-tag sweetness">
-            {sweetnessName.split(" ")[0]}
+            {sweetnessName.match(/\d+\s*%/)?.[0]
+              ? `หวาน ${sweetnessName.match(/\d+\s*%/)[0]}`
+              : sweetnessName}
           </span>
         )}
         {toppingNames.map((name, i) => (

@@ -164,7 +164,7 @@ export default function ReceiptModal({
                       {item.temperatureName ? ` · ${item.temperatureName.split(" ")[0]}` : ""}
                       {item.sizeName ? ` · ${item.sizeName}` : ""}
                       {item.sweetnessName
-                        ? ` · ${item.sweetnessName.split(" ")[0]}`
+                        ? ` · ${item.sweetnessName.match(/\d+\s*%/)?.[0] ? `หวาน ${item.sweetnessName.match(/\d+\s*%/)[0]}` : item.sweetnessName}`
                         : ""}
                       {item.toppingNames && item.toppingNames.length > 0
                         ? ` · ${item.toppingNames.join(", ")}`

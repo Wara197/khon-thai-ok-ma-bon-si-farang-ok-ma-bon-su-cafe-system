@@ -883,9 +883,19 @@ export default function OwnerView({
                             try {
                               const opts = typeof it.options_json === "string" ? JSON.parse(it.options_json) : it.options_json;
                               const parts = [];
-                              if (opts?.size) parts.push(`ไซส์ ${opts.size}`);
-                              if (opts?.sweetness) parts.push(opts.sweetness);
-                              if (opts?.toppings?.length) parts.push(`ท็อปปิง: ${opts.toppings.join(", ")}`);
+                              const temperature = opts?.temperatureName || opts?.temperature;
+                              const size = opts?.sizeName || opts?.size;
+                              const sweetness = opts?.sweetnessName || opts?.sweetness;
+                              const toppings = opts?.toppingNames?.length ? opts.toppingNames : opts?.toppings;
+                              const bakeryOption = opts?.bakeryOptionName;
+                              if (temperature) parts.push(temperature);
+                              if (size) parts.push(`ไซส์ ${size}`);
+                              if (sweetness) {
+                                const percent = sweetness.match?.(/\d+\s*%/)?.[0];
+                                parts.push(percent ? `หวาน ${percent}` : sweetness);
+                              }
+                              if (toppings?.length) parts.push(`ท็อปปิง: ${toppings.join(", ")}`);
+                              if (bakeryOption) parts.push(`หมายเหตุ: ${bakeryOption}`);
                               if (opts?.note) parts.push(`หมายเหตุ: ${opts.note}`);
                               optText = parts.join(" · ");
                             } catch {
