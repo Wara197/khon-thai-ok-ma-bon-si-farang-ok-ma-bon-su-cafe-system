@@ -40,8 +40,9 @@
 | FR-09 สต็อก | ทำงาน | มีคลัง, สูตรพื้นฐานและสูตรแทนค่าตามขนาด/ประเภท/ความหวาน/วิธีเสิร์ฟ, รับเข้า, ปรับยอด, ประวัติ movement; ตรวจสูตรและสต็อกก่อน order, ตัด/คืนตาม snapshot ใน transaction; Owner เห็น low-stock ใน Analytics/คลัง และ Barista อ่านยอด/threshold/สถานะต่ำได้ |
 | FR-10 รายงาน | ทำงานบางส่วน | รายงานยอดขายตามสาขาและช่วง `today`, `7d`, `30d`, `all`, ยอดเปรียบเทียบ, จำนวนเสร็จสิ้น, ช่องทางชำระ, top 5 และรายการล่าสุดสูงสุด 50 รายการ; queue status ในรายงานเป็นยอดรวมทุกช่วงเวลา |
 | FR-11 Login และ role access | ทำงาน | บัญชี `owner`, `cashier`, `barista`; session cookie และ middleware บังคับ role แยกตาม API; owner จัดการบัญชี/ปิดใช้งาน/ตั้งรหัสใหม่ | ยังไม่มีการกู้บัญชีด้วยอีเมล, MFA หรือ audit trail การเปลี่ยนสิทธิ์ |
-| จัดการเมนู | ทำงาน | เพิ่ม/แก้ไข/ซ่อนเมนู; ราคาเมนูเป็น base price เดียว ไม่พบการตั้งราคาฐานแยก S/M/L; option ราคาเพิ่มเก็บแยกใน `product_options` |
-| อัปโหลดรูป | ทำงานตาม endpoint | รับ base64, บันทึก `backend/public/uploads`, และพยายามคัดลอกไป `frontend/public/uploads`; ไม่พบการตรวจสอบเนื้อหาไฟล์ภาพจริงอย่างเข้มงวด |
+| สูตรบนคิวบาริสต้า (เพิ่มภายหลัง) | ทำงาน | ตอนสร้าง order ระบบ snapshot ชื่อวัตถุดิบ หน่วย และปริมาณที่ใช้ตัดสต็อกจริงลง `order_items.options_json.inventoryConsumptions`; QueueCard แสดงสูตรจาก snapshot; Owner สามารถใส่ `preparation_instructions` เสริมได้แยกจากสูตร | คิวเก่าที่มี snapshot รุ่นก่อนเก็บเฉพาะ ID/ปริมาณจะเติมชื่อและหน่วยจากคลังปัจจุบันโดยรักษาปริมาณใน snapshot; คิวที่ไม่มี consumption snapshot แจ้งว่าไม่มีข้อมูลสูตร |
+| จัดการเมนู | ทำงาน | เพิ่ม/แก้ไข/ซ่อนเมนู; ราคาเมนูเป็น base price เดียว ไม่พบการตั้งราคาฐานแยก S/M/L; option ราคาเพิ่มเก็บแยกใน `product_options`; Owner กำหนด `preparation_instructions` ได้สูงสุด 2,000 ตัวอักษรต่อเมนู |
+| อัปโหลดรูป | ทำงานตาม endpoint | รับเฉพาะ data URL ของ PNG/JPEG/WEBP/GIF, ตรวจ signature ให้สอดคล้องกับ MIME และจำกัดไฟล์ 15 MB; บันทึก `backend/public/uploads` และพยายามคัดลอกไป `frontend/public/uploads` |
 
 NFR ด้านเวลา, usability, SUS, security และ compatibility เป็นเกณฑ์/ผลที่ต้องวัดแยกจาก source code เอกสารนี้ไม่ถือว่าผ่านเกณฑ์ดังกล่าวจากการอ่านโค้ดเพียงอย่างเดียว
 
@@ -50,11 +51,11 @@ NFR ด้านเวลา, usability, SUS, security และ compatibility �
 | หน้าจอ | พฤติกรรมตาม source |
 |---|---|
 | Cashier | โหลดเมนู/ตัวเลือก; เลือกหมวดและสินค้า; ปรับแต่งสินค้า; รวมรายการที่ตัวเลือกเหมือนกัน; ปรับจำนวน/ลบ/ล้างตะกร้า; เลือกวิธีชำระ; ส่ง `branchId`; แสดงใบเสร็จที่พิมพ์ผ่าน browser print |
-| Barista | เลือกสาขา; แสดง `pending`, `cooking`, `ready`; refresh ทุก 3 วินาที; ปุ่มเลื่อนไปสถานะถัดไป; ยกเลิกออเดอร์ได้เฉพาะ pending/cooking; เปิดแผงเช็คสต็อกเพื่ออ่านยอดคงเหลือ/threshold และ refresh ทุก 30 วินาทีขณะแผงเปิด |
+| Barista | เลือกสาขา; แสดง `pending`, `cooking`, `ready` พร้อมตัวเลือก สูตรวัตถุดิบจาก consumption snapshot และข้อความวิธีชงเสริม; refresh ทุก 3 วินาที; ปุ่มเลื่อนไปสถานะถัดไป; ยกเลิกออเดอร์ได้เฉพาะ pending/cooking; เปิดแผงเช็คสต็อกเพื่ออ่านยอดคงเหลือ/threshold และ refresh ทุก 30 วินาทีขณะแผงเปิด |
 | Owner Analytics | เลือกสาขาและช่วงเวลา; โหลดรายงานเมื่อเลือก/รีเฟรชและ poll รายงานทุก 60 วินาที; queue stats poll ทุก 5 วินาที; low stock poll ทุก 60 วินาทีพร้อมลิงก์ไปคลัง; ค้นหา/กรองสถานะในรายการล่าสุด; เปิดดูรายการคิวที่รอทำและ retry เมื่อโหลดผิดพลาด |
 | Owner Inventory | เพิ่ม/แก้ไขวัตถุดิบ, รับเข้า/ปรับยอด, ตั้ง threshold, กำหนดสูตรพื้นฐานหรือสูตร override ตาม option, ดู low stock และประวัติ 30 movement ล่าสุด; เมนูที่ไม่มีสูตรที่ตรงกับตัวเลือกจะสั่งขายไม่ได้ |
 | Owner Staff | เพิ่มบัญชีพนักงาน, เลือก role, ปิด/เปิดใช้งานบัญชี, reset password; บังคับ owner อย่างน้อยหนึ่งบัญชีที่ยัง active |
-| Owner Menu Manager | ค้นหา/กรองเมนู; เพิ่ม/แก้ไข/ซ่อนเมนู; แก้ชื่อ หมวด ราคาฐาน รูปภาพ; อัปโหลดรูปหรือใส่ URL |
+| Owner Menu Manager | ค้นหา/กรองเมนู; เพิ่ม/แก้ไข/ซ่อนเมนู; แก้ชื่อ หมวด ราคาฐาน รูปภาพ และวิธีชง; อัปโหลดรูปหรือใส่ URL |
 
 ตัวเลือกสาขาบน Navbar เป็น state ส่วนกลางของจุดขาย/หน้าบาริสต้า ส่วนตัวกรองสาขาใน Owner Analytics เป็น state ของหน้า dashboard แยกกัน
 
@@ -67,12 +68,12 @@ NFR ด้านเวลา, usability, SUS, security และ compatibility �
 | GET | `/api/products` | หมวดหมู่ เมนูที่เปิดขาย และตัวเลือกทั้งหมด |
 | GET | `/api/categories` | รายชื่อหมวดหมู่ |
 | GET | `/api/branches` | รายชื่อสาขา |
-| POST | `/api/upload` | บันทึกรูปจาก base64 |
-| POST | `/api/products` | เพิ่มเมนู; body ใช้ `categoryId`, `name`, `basePrice`, `imageUrl` |
-| PUT | `/api/products/:id` | แก้ไขเมนู |
+| POST | `/api/upload` | owner-only; รับ data URL PNG/JPEG/WEBP/GIF, ตรวจ signature และจำกัด 15 MB ก่อนบันทึก |
+| POST | `/api/products` | เพิ่มเมนู; body ใช้ `categoryId`, `name`, `basePrice`, `imageUrl`, optional `preparationInstructions` (สูงสุด 2,000 ตัวอักษร) |
+| PUT | `/api/products/:id` | แก้ไขเมนู; รับ optional `preparationInstructions`; หากไม่ส่ง field จะรักษาค่าเดิม |
 | DELETE | `/api/products/:id` | soft delete โดยตั้ง `is_active=0` |
 | POST | `/api/orders` | สร้างออเดอร์; body มี `paymentMethod`, `branchId`, `items[]` |
-| GET | `/api/orders/queue?branchId=` | รายละเอียดคิวที่ยัง active; ไม่ส่ง completed/cancelled |
+| GET | `/api/orders/queue?branchId=` | รายละเอียดคิวที่ยัง active พร้อม snapshot options/วิธีชง; ไม่ส่ง completed/cancelled |
 | GET | `/api/orders/queue/stats?branchId=` | จำนวนคิวแยกสถานะสำหรับ dashboard |
 | PATCH | `/api/orders/:id/status` | เปลี่ยนสถานะตามกฎลำดับ |
 | DELETE | `/api/orders/:id` | ยกเลิก pending/cooking |
@@ -109,7 +110,7 @@ NFR ด้านเวลา, usability, SUS, security และ compatibility �
 | `users` | `username`, `password_hash`, `password_salt`, `role`, `is_active` |
 | `sessions` | `user_id`, `token_hash`, `expires_at`, `created_at` |
 
-`options_json` เก็บค่า option IDs/names, `isBakery` และ `inventoryConsumptions` ที่ snapshot ตอนสั่ง เพื่อคืนสต็อกให้ตรงแม้มีการแก้สูตรภายหลัง. Seed เพิ่ม `น้ำตาล` แบบ idempotent และสร้างสูตรตัวอย่างตาม sweetness 25/50/75/100% เท่ากับ 3/6/9/12 กรัมต่อแก้ว; 0% ไม่สร้าง consumption rule. ปริมาณเป็นค่าตัวอย่างที่ owner แก้ได้ ไม่ใช่สูตรมาตรฐานของร้าน
+`options_json` เก็บค่า option IDs/names, `isBakery` และ `inventoryConsumptions` ที่ snapshot ตอนสั่ง (วัตถุดิบ/หน่วย/ปริมาณ) เพื่อแสดงสูตรบนคิวและคืนสต็อกให้ตรงแม้มีการแก้สูตรภายหลัง. สำหรับคิวรุ่นเก่าที่ snapshot มีเพียง ID/ปริมาณ ระบบเติมชื่อและหน่วยจาก inventory โดยไม่แทนจำนวนใน snapshot. Seed เพิ่ม `น้ำตาล` แบบ idempotent และสร้างสูตรตัวอย่างตาม sweetness 25/50/75/100% เท่ากับ 3/6/9/12 กรัมต่อแก้ว; 0% ไม่สร้าง consumption rule. ปริมาณเป็นค่าตัวอย่างที่ owner แก้ได้ ไม่ใช่สูตรมาตรฐานของร้าน
 
 การสร้าง order ใช้ `BEGIN IMMEDIATE TRANSACTION` ครอบการตรวจสูตร/stock, สร้างคิว, insert header/items และตัด stock; การยกเลิกครอบการเปลี่ยนสถานะและคืน stock ใน transaction เดียวกัน. `PRAGMA foreign_keys=ON` เปิดใน connection runtime. `orders.branch_id` ยังไม่มี FK ใน DDL runtime
 

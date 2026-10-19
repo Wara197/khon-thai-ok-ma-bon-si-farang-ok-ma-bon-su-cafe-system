@@ -32,7 +32,7 @@ Backend จัดกลุ่มหน้าที่เป็น routes, contro
 
 ## บทที่ 6 การออกแบบฐานข้อมูล
 
-การออกแบบข้อมูลครอบคลุมสาขา หมวดหมู่สินค้า เมนู ตัวเลือกสินค้า คำสั่งซื้อ รายการคำสั่งซื้อ วัตถุดิบ สูตรใช้วัตถุดิบ และประวัติการเคลื่อนไหว ใช้ ER diagram และ schema ใน [wk07](./wk07-er-diagram.md) อธิบายโครงสร้างที่ออกแบบ ส่วนตาราง runtime ปัจจุบันมีรายละเอียดในภาคผนวก A และ [เอกสาร as-built](./as-built-reverse-engineering.md)
+การออกแบบข้อมูลครอบคลุมสาขา หมวดหมู่สินค้า เมนู ตัวเลือกสินค้า คำสั่งซื้อ รายการคำสั่งซื้อ วัตถุดิบ สูตรใช้วัตถุดิบ และประวัติการเคลื่อนไหว รวมถึงคำแนะนำวิธีชงบนเมนูและ snapshot ในรายการออเดอร์ ใช้ ER diagram และ schema ใน [wk07](./wk07-er-diagram.md) อธิบายโครงสร้างที่ออกแบบ ส่วนตาราง runtime ปัจจุบันมีรายละเอียดในภาคผนวก A และ [เอกสาร as-built](./as-built-reverse-engineering.md)
 
 ## บทที่ 7 Business Logic และลำดับการทำงาน
 
@@ -40,7 +40,7 @@ Backend จัดกลุ่มหน้าที่เป็น routes, contro
 
 ## บทที่ 8 Input, Output และ UI
 
-การออกแบบ I/O ครอบคลุมการรับข้อมูลสินค้าและตัวเลือกจากแคชเชียร์ การแสดงคิวและสถานะสำหรับบาริสต้า และการแสดงสรุปยอดขายสำหรับเจ้าของร้าน เอกสาร [wk10-wireframe](./wk10-wireframe.md) ใช้อธิบายแนวคิดหน้าจอ และ SRS ระบุ input/output ของแต่ละส่วน
+การออกแบบ I/O ครอบคลุมการรับข้อมูลสินค้าและตัวเลือกจากแคชเชียร์ การแสดงคิว ตัวเลือก และคำแนะนำวิธีชงสำหรับบาริสต้า และการแสดงสรุปยอดขายสำหรับเจ้าของร้าน เอกสาร [wk10-wireframe](./wk10-wireframe.md) ใช้อธิบายหน้าจอ รวมถึงช่องวิธีชงใน Menu Manager และตำแหน่งแสดงผลบนการ์ดคิว
 
 ## บทที่ 9 สถาปัตยกรรมระบบ
 
@@ -52,7 +52,7 @@ Backend จัดกลุ่มหน้าที่เป็น routes, contro
 
 ## บทที่ 11 ผลการรวมระบบและ Integration
 
-การออกแบบ integration เชื่อมหน้าขาย API ฐานข้อมูล หน้าบาริสต้า และรายงานเจ้าของร้านตาม sequence ที่กำหนด เอกสาร [wk13](./wk13-test-cases.md) เป็น test plan และมีผล manual API integration smoke test แยกใน [execution log](./wk13-execution-log.md); ยังไม่ใช่ผล UI E2E หรือการซ้อม live demo ผ่านหน้าจอ
+การตรวจรอบ 19 ตุลาคม 2026 บันทึกทั้ง walkthrough ผ่าน UI, การตรวจ API โดยตรง และ fault injection บน SQLite ทดสอบแยก ตาม [execution log](./wk13-execution-log.md). TC-01–TC-14 มีผลตามขอบเขตที่ระบุรายกรณี; TC-15–TC-16 ซึ่งเพิ่มภายหลังยังไม่ทดสอบ และรอบนี้ไม่ใช่การวัด performance/usability หรือหลักฐานการซ้อมนำเสนอ
 
 ## บทที่ 12 การตรวจคุณภาพและความปลอดภัย
 
@@ -60,7 +60,7 @@ Backend จัดกลุ่มหน้าที่เป็น routes, contro
 
 ## บทที่ 13 สรุปผลและข้อเสนอแนะ
 
-ระบบมีองค์ประกอบสำหรับการขาย การจัดคิว การจัดการเมนู คลังวัตถุดิบพร้อมสูตรตามตัวเลือก การรับเข้า/ประวัติ movement และการแจ้งเตือนสต็อกต่ำ โดย Owner จัดการสต็อกได้และ Barista อ่านยอด/สถานะได้แบบ read-only ข้อเสนอแนะสำคัญคือซ้อม live demo ผ่าน UI จริงและเก็บหลักฐานการทดสอบซ้ำ รายละเอียดความครอบคลุม ข้อจำกัด และความเสี่ยงอยู่ในภาคผนวก A
+ระบบมีองค์ประกอบสำหรับการขาย การจัดคิว การจัดการเมนูพร้อมคำแนะนำเสริม คลังวัตถุดิบพร้อมสูตรตัดสต็อกตามตัวเลือก การรับเข้า/ประวัติ movement และการแจ้งเตือนสต็อกต่ำ โดย Owner จัดการสต็อกได้และ Barista อ่านยอด/สถานะแบบ read-only พร้อมเห็นสูตรวัตถุดิบจาก snapshot เดียวกับที่ใช้ตัดสต็อกในออเดอร์ ข้อเสนอแนะสำคัญคือซ้อม live demo ผ่าน UI จริงและเก็บหลักฐานการทดสอบซ้ำ รายละเอียดความครอบคลุม ข้อจำกัด และความเสี่ยงอยู่ในภาคผนวก A
 
 ## บทที่ 14 ภาคผนวก
 
@@ -82,12 +82,13 @@ Backend จัดกลุ่มหน้าที่เป็น routes, contro
 | FR-09 สต็อก           | ติดตามสต็อก/แจ้งเตือน                  | สูตร base/override ตาม size, temperature, sweetness หรือ bakery option; มี stock น้ำตาลและสูตร seed 3/6/9/12 กรัมสำหรับความหวาน 25/50/75/100%; รับเข้า/ปรับยอด/ดู movement; ตัดและคืน stock ตาม snapshot; Barista อ่านยอด/threshold ได้ | เมนูที่ไม่มีสูตรตรงกับตัวเลือกจะถูกปฏิเสธ; การแก้ stock/สูตรยัง owner-only; ค่ากรัมน้ำตาลเป็น seed |
 | FR-10 รายงาน          | ดูรายงานการขาย                         | รองรับ 4 period, payment breakdown, top 5 และ recent orders สูงสุด 50; owner queue stats แยกจาก report                                                                                                                                                                              | ทำงานบางส่วน; queue stats ไม่กรองตาม period                                              |
 | FR-11 Login/สิทธิ์    | แยกบทบาท cashier, barista, owner       | Session cookie; API role guards; owner จัดการบัญชีและ reset password                                                                                                                                                                                                                | ไม่มี MFA, password recovery หรือ audit trail                                            |
+| FR-14 สูตรบนคิวบาริสต้า | ลดเวลาค้นหาสูตรจากหน้าคิว               | order snapshots ชื่อวัตถุดิบ หน่วย และปริมาณที่ใช้ตัดสต็อกใน `options_json.inventoryConsumptions`; QueueCard แสดงสูตรจาก snapshot; Owner ใส่ `preparation_instructions` เพิ่มเติมได้แยกต่างหาก                                                                                                                                                                   | คิวรุ่นเก่าที่มีเพียง ID/ปริมาณเติมชื่อและหน่วยจากคลังปัจจุบัน; คิวไม่มี consumption snapshot แจ้งว่าไม่มีข้อมูลสูตร           |
 | โครงสร้างข้อมูล       | ER/schema ตามแบบ wk07                  | 13 ตาราง runtime: `branches`, `categories`, `products`, `product_options`, `orders`, `order_items`, `inventory`, `product_recipes`, `product_recipe_rules`, `inventory_movements`, `schema_migrations`, `users`, `sessions`; `options_json` เก็บตัวเลือกและ snapshot วัตถุดิบที่ใช้ | `product_recipes` เป็น legacy สำหรับ migration; `orders.branch_id` ยังไม่มี FK           |
 | การบันทึก order       | บันทึก header, รายการสินค้า และ stock  | transaction เดียวครอบการตรวจสูตร/stock, คิว, header/items และ stock deduction                                                                                                                                                                                                       | cancellation คืนจากสูตร snapshot บน line item                                            |
-| UI และ I/O            | Wireframe สำหรับ cashier/barista/owner | มีหน้าจอทั้งสามกลุ่มและ Menu Manager                                                                                                                                                                                                                                                | wireframe เป็นแบบ ไม่ใช่ภาพยืนยัน UI ปัจจุบัน; branch selector ของ Owner เป็น state แยก  |
+| UI และ I/O            | Wireframe สำหรับ cashier/barista/owner | มีหน้าจอทั้งสามกลุ่ม; Menu Manager มีช่องวิธีชง และ Barista QueueCard แสดง snapshot ต่อรายการ                                                                                                                                                                                        | wireframe เป็นแบบ ไม่ใช่ภาพยืนยัน UI ปัจจุบัน; branch selector ของ Owner เป็น state แยก  |
 | Usability             | wk12 มีผลกิจกรรมประเมินเดิม            | ไม่พบ raw participant evidence สำหรับคำนวณซ้ำ                                                                                                                                                                                                                                       | แสดงเป็น historical reported result; ยังไม่ revalidate                                   |
-| Integration/testing   | wk13 กำหนด test cases                  | รัน manual API smoke test ใน SQLite แยก: login → create order → queue → status changes → owner report                                                                                                                                                                               | flow API ที่ระบุผ่าน; ไม่มี automated suite หรือหลักฐาน UI E2E; TC-01–TC-14 ยังไม่รันครบ |
-| Quality/security      | wk14 กำหนดหัวข้อ review                | มี role guard, password hash และ session cookie; CORS จำกัด origin; upload validation ยังจำกัด                                                                                                                                                                                      | เป็นข้อค้นพบจาก source review ไม่ใช่ผล security test; ยังไม่มี MFA/recovery/audit log    |
+| Integration/testing | wk13 กำหนด test cases | มี UI walkthrough, API checks และ fault injection ใน SQLite แยกสำหรับ TC-01–TC-14; TC-15–TC-16 ยังไม่ทดสอบ | ผลแต่ละกรณีอยู่ใน execution log; ไม่ใช่ performance/usability study หรือการซ้อม live demo |
+| Quality/security | wk14 กำหนดหัวข้อ review | มี role guard, password hash/session cookie, CORS จำกัด origin; upload ตรวจ MIME allowlist/signature และขนาด 15 MB | เป็น source review ไม่ใช่ security test; ยังไม่มี MFA/recovery/audit log และควรพิจารณา quota/lifecycle |
 | ขอบเขตนอกระบบ         | ความต้องการเพิ่มเติมในเอกสารเดิม       | ไม่พบ real payment confirmation, tax, delivery integration หรือ full accounting; ส่วนลดเป็นจำนวนเงินบาทรองรับแล้ว                                                                                                                                                                      | จัดเป็น future scope จนกว่าจะมี implementation                                           |
 
 ### B. API routes
@@ -120,7 +121,7 @@ Backend จัดกลุ่มหน้าที่เป็น routes, contro
 | 10      | [Wireframe](./wk10-wireframe.md), [SRS](./wk10-srs.md)                             | Wireframe เป็นแบบ; SRS แยกสถานะ as-built                 |
 | 11      | [Architecture](./wk11-architecture.md)                                             | 4+1 Views เทียบ runtime architecture                     |
 | 12      | [Usability](./wk12-usability-testing.md)                                           | Historical reported result, ยังไม่ revalidate            |
-| 13      | [Test Plan](./wk13-test-cases.md), [Execution Log](./wk13-execution-log.md)        | Manual API smoke result; full TC matrix/UI E2E ยังไม่รัน |
+| 13      | [Test Plan](./wk13-test-cases.md), [Execution Log](./wk13-execution-log.md)        | UI walkthrough, API checks และ fault injection สำหรับ TC-01–TC-14; TC-15–TC-16 ยังไม่ทดสอบ |
 | 14      | [Quality Review](./wk14-quality-review.md)                                         | Source review; ไม่ใช่ security test                      |
 
 ### D. คำอธิบายไฟล์ source

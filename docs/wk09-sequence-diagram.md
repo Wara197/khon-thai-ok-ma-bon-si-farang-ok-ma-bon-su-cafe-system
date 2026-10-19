@@ -36,12 +36,13 @@ sequenceDiagram
   Cashier->>UI: เลือกสินค้า, options, payment method
   UI->>Route: items + paymentMethod + branchId
   Route->>Controller: createOrder(data)
-  Controller->>Entities: validate product/options and calculate price
+  Controller->>Entities: load product (including preparation instructions), validate options and calculate price
   Controller->>DB: BEGIN IMMEDIATE transaction
   Controller->>Entities: load matching recipe rules and stock
   Entities->>DB: SELECT product/options/recipe rules/stock
   DB-->>Entities: rows
   Controller->>Controller: validate inventory availability, snapshot usage
+  Controller->>Controller: add preparation instructions to item options snapshot
   Controller->>Entities: get next queue, create order + line items
   Entities->>DB: INSERT orders and order_items
   Controller->>DB: decrement inventory and insert movements
@@ -50,11 +51,15 @@ sequenceDiagram
   UI-->>Cashier: show receipt; optional browser print
   loop every 3 seconds
     Barista->>Route: GET /api/orders/queue?branchId=...
-    Route-->>Barista: pending/cooking/ready orders and items
+    Route->>DB: read order_items.options_json snapshots
+    DB-->>Route: selected options and preparation instructions
+    Route-->>Barista: pending/cooking/ready orders and item instructions
   end
 ```
 
 หาก validation, stock check หรือการเขียนรายการใดล้มเหลว transaction จะ rollback การจองคิว, order, items และ stock movement พร้อมกัน.
+
+ตอนสร้างออเดอร์ ระบบคัดลอกชื่อวัตถุดิบ หน่วย และปริมาณที่จับคู่ได้จากสูตรจริงไปไว้ใน `options_json.inventoryConsumptions` พร้อม snapshot ตัวเลือก; QueueCard ใช้ข้อมูลชุดนี้แสดงสูตรให้บาริสต้า และไม่คำนวณจากสูตรปัจจุบันซ้ำเมื่ออ่านคิว. คำแนะนำข้อความจาก `products.preparation_instructions` เป็นข้อมูลเสริมและแสดงแยกจากสูตรตัดสต็อก.
 
 ## 3. อัปเดตสถานะหรือยกเลิก
 

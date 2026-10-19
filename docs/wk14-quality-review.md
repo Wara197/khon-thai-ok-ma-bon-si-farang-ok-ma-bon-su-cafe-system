@@ -24,7 +24,7 @@
 |---|---|---|
 | P1 | ยังไม่มี MFA/password recovery/audit log | บัญชีใช้รหัสผ่านกับ session อายุ 12 ชั่วโมง; ไม่มี self-service recovery หรือบันทึกเหตุการณ์เปลี่ยนสิทธิ์ |
 | P2 | `orders.branch_id` ไม่มี foreign key | SQLite foreign keys เปิดอยู่ แต่ DDL ไม่กำหนด FK สำหรับสาขาบนออเดอร์ |
-| P2 | upload รับ base64 และไม่ validate image bytes | ควรตรวจ file signature/MIME/size และจัดการ quota ก่อนใช้จริง |
+| P2 | upload รับ base64 และตรวจชนิดไฟล์ได้บางส่วน | route ตรวจ allowlist PNG/JPEG/WEBP/GIF, signature และขนาด 15 MB แล้ว แต่ยังควรพิจารณา quota, rate limit และนโยบายเก็บ/ลบไฟล์ก่อนใช้จริง |
 | P2 | sales report จำกัด ledger 50; queue counts รวมทุกช่วงเวลา | ผู้ใช้ต้องเข้าใจข้อจำกัดของข้อมูลและตัวกรอง |
 | P3 | `mysql2`/MySQL schema แยกจาก SQLite runtime | ทำให้เอกสาร/ผู้พัฒนาสับสนว่า runtime ใช้ DB ใด |
 
@@ -38,7 +38,7 @@
 
 ## 5. ลำดับข้อเสนอแนะ
 
-1. ตรวจ upload file signature/MIME/size และเพิ่ม quota.
+1. เพิ่ม quota/rate limit และนโยบาย lifecycle สำหรับไฟล์อัปโหลด โดย validation MIME/signature/size ขั้นต้นมีอยู่แล้ว.
 2. พิจารณา MFA, password recovery และ audit log ก่อนเปิดใช้งานภายนอก.
 3. เพิ่ม foreign key สำหรับ `orders.branch_id` ผ่าน migration ที่เข้ากันได้กับข้อมูลเดิม.
 4. กำหนด report metrics/period ให้สอดคล้อง และเพิ่ม tests ที่ทำซ้ำได้.

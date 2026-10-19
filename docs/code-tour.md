@@ -26,13 +26,13 @@
 | `backend/routes/orderRoutes.js`              | endpoint สร้างออเดอร์ อ่านคิว เปลี่ยนสถานะ และยกเลิกออเดอร์                                                               |
 | `backend/routes/inventoryRoutes.js`          | endpoint คลังวัตถุดิบ; owner จัดการได้ ส่วน owner/barista อ่านยอดได้                                                      |
 | `backend/routes/userRoutes.js`               | endpoint บริหารบัญชีพนักงานสำหรับ owner                                                                                   |
-| `backend/controllers/productController.js`   | รวมข้อมูลเมนู หมวดหมู่ และ product options เพื่อส่งให้หน้าร้าน                                                            |
+| `backend/controllers/productController.js`   | รวมข้อมูลเมนู หมวดหมู่ options และตรวจ/บันทึกคำแนะนำวิธีชงสำหรับบาริสต้า                                               |
 | `backend/controllers/orderController.js`     | ตรวจตัวเลือก/ราคา สร้างคิวและออเดอร์ หักสต็อกตามสูตรใน transaction และคืนสต็อกเมื่อยกเลิก                                 |
 | `backend/controllers/inventoryController.js` | ตรวจยอดและสูตร คำนวณรายการ low stock และแยกข้อมูล stock overview สำหรับบาริสต้า                                           |
 | `backend/controllers/authController.js`      | ควบคุมกรณี login/logout/session ที่ route เรียกใช้งาน                                                                     |
 | `backend/entities/Branch.js`                 | อ่านข้อมูลสาขา                                                                                                            |
 | `backend/entities/Category.js`               | อ่านหมวดหมู่สินค้า                                                                                                        |
-| `backend/entities/Product.js`                | อ่านเมนูและราคา                                                                                                           |
+| `backend/entities/Product.js`                | อ่านเมนู ราคา และคำแนะนำวิธีชง                                                                                           |
 | `backend/entities/ProductOption.js`          | อ่านขนาด ความหวาน ประเภทเครื่องดื่ม ท็อปปิง และตัวเลือกเบเกอรี่                                                           |
 | `backend/entities/Order.js`                  | บันทึกออเดอร์/รายการ สร้างคิว อ่านคิว เปลี่ยนสถานะ และจัดการข้อมูลรายการ                                                  |
 | `backend/entities/Inventory.js`              | อ่านสต็อก สูตร และ movement; รับเข้า/ปรับยอด/ตั้งสูตร                                                                     |
@@ -61,9 +61,9 @@
 | `frontend/src/components/cashier/CartSidebar.jsx`        | แสดงรายการในตะกร้า ยอดรวม ส่วนลด และปุ่มชำระเงิน                                         |
 | `frontend/src/components/cashier/ReceiptModal.jsx`       | แสดงรายละเอียดใบเสร็จหลังรับชำระ                                                         |
 | `frontend/src/components/barista/BaristaView.jsx`        | poll คิว แสดงตัวนับ/ตัวกรอง เปลี่ยนสถานะ และดูสต็อกแบบอ่านอย่างเดียว                     |
-| `frontend/src/components/barista/QueueCard.jsx`          | แสดงรายละเอียดออเดอร์หนึ่งใบและปุ่มดำเนินสถานะ                                           |
+| `frontend/src/components/barista/QueueCard.jsx`          | แสดงรายละเอียดออเดอร์ ตัวเลือก สูตรวัตถุดิบจาก snapshot และคำแนะนำวิธีชงเสริม พร้อมปุ่มดำเนินสถานะ |
 | `frontend/src/components/owner/OwnerView.jsx`            | รวม dashboard รายงาน และเครื่องมือหลังบ้านของเจ้าของร้าน                                 |
-| `frontend/src/components/owner/MenuManager.jsx`          | เปิด/ปิดเมนูและจัดการข้อมูลเมนู                                                          |
+| `frontend/src/components/owner/MenuManager.jsx`          | เปิด/ปิดเมนู จัดการข้อมูลเมนู และกำหนดคำแนะนำวิธีชงสำหรับบาริสต้า                        |
 | `frontend/src/components/owner/InventoryManager.jsx`     | เพิ่มวัตถุดิบ ปรับยอด รับเข้า ตั้ง threshold และกำหนดสูตร                                |
 | `frontend/src/components/owner/UserManager.jsx`          | จัดการบัญชีพนักงานและบทบาท                                                               |
 | `package.json`                                           | scripts ระดับ repository สำหรับติดตั้ง dependencies, เปิด backend และสั่ง build frontend |
@@ -75,6 +75,7 @@
 - `db.js` เพิ่มวัตถุดิบน้ำตาลด้วย `INSERT OR IGNORE` จึงไม่ reset ยอดที่มีอยู่
 - สูตรสาธิตกำหนด 25/50/75/100% เป็นน้ำตาล 3/6/9/12 กรัมต่อแก้ว; 0% ไม่ตัดน้ำตาล สูตรตัวอย่างนี้แก้ได้ในหน้าเจ้าของร้าน
 - ตอนสร้างออเดอร์ controller เลือกสูตรที่ตรงกับ `sweetnessId`, รวมปริมาณตามจำนวนแก้ว ตรวจวัตถุดิบพอ แล้วหักยอดและบันทึก movement พร้อมออเดอร์ใน transaction เดียว
+- `inventoryConsumptions` ใน `order_items.options_json` เก็บ snapshot ชื่อวัตถุดิบ/หน่วย/ปริมาณที่ถูกใช้จริง; QueueCard แสดงรายการนี้เป็นสูตรให้บาริสต้าโดยไม่ต้องค้นหาสูตรหรือคำนวณจากข้อมูลที่แก้ภายหลัง
 
 ## ขอบเขตไฟล์
 

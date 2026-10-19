@@ -26,6 +26,8 @@
 | TC-12 | จำลอง insert order_item ล้มเหลว | transaction ต้อง rollback order, items และ stock movement ทั้งชุด | ผ่าน — fault injection ที่ order_item และ movement หลังตัด stock; rollback ทั้งชุด |
 | TC-13 | เข้าหน้าสต็อกด้วยบัญชี barista | GET inventory แสดงชื่อ/ยอด/หน่วย/threshold; mutation endpoints ต้องตอบ 403 | ผ่าน — UI/API; อ่าน stock ได้และ POST/PUT/สูตรตอบ 403 |
 | TC-14 | สั่งเครื่องดื่มที่ระดับหวาน 25/50/75/100% | stock น้ำตาลลดตาม recipe rule; ระดับ 0% ไม่ลด; cancel คืนตาม consumption snapshot | ผ่าน — API; 0/25/50/75/100% หัก 0/3/6/9/12 กรัม และยกเลิกแล้วคืนครบ |
+| TC-15 (เพิ่มภายหลัง) | owner บันทึก/แก้วิธีชง แล้วสร้าง order ให้ barista | GET products คืนคำแนะนำ; order ใหม่เก็บข้อความเป็น snapshot ใน `options_json`; Barista QueueCard แสดงคำแนะนำ; แก้คำแนะนำภายหลังไม่เปลี่ยนข้อความใน order เดิม | ยังไม่ทดสอบ |
+| TC-16 (เพิ่มภายหลัง) | สร้าง order จากทุกเมนูที่มีสูตร แล้วเปิดคิวบาริสต้า | QueueCard แสดงชื่อวัตถุดิบ หน่วย และปริมาณจาก `inventoryConsumptions` snapshot; คิวรุ่นเก่าที่มีเพียง inventory ID/ปริมาณยังแสดงชื่อ/หน่วยจากคลัง; ข้อความวิธีชงเสริมไม่แทนสูตร; เมนูที่ไม่มีสูตร snapshot แสดงสถานะชัดเจน | ยังไม่ทดสอบ |
 
 ## 3. หลักฐานการทดสอบ
 

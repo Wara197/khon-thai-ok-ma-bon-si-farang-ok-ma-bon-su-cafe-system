@@ -26,7 +26,7 @@
 | 10 | [wk10-srs.md](./wk10-srs.md) | SRS as-built และข้อจำกัด |
 | 11 | [wk11-architecture.md](./wk11-architecture.md) | Architecture 4+1 Views ของ runtime ปัจจุบัน |
 | 12 | [wk12-usability-testing.md](./wk12-usability-testing.md) | บันทึกผล usability เดิม; ตัวเลขเป็นรายงานกิจกรรมและยังไม่ revalidate |
-| 13 | [wk13-test-cases.md](./wk13-test-cases.md), [wk13-execution-log.md](./wk13-execution-log.md) | Test plan และผล manual API smoke test; แยกจาก UI E2E |
+| 13 | [wk13-test-cases.md](./wk13-test-cases.md), [wk13-execution-log.md](./wk13-execution-log.md) | Test plan, UI walkthrough/API/fault injection log; ระบุ TC-15–16 ที่ยังไม่ทดสอบ |
 | 14 | [wk14-quality-review.md](./wk14-quality-review.md) | Code review จาก source โดยแยกสิ่งที่วัดไม่ได้ |
 | — | [ai-disclosure.md](./ai-disclosure.md) | การเปิดเผยการช่วยงานด้วย AI |
 

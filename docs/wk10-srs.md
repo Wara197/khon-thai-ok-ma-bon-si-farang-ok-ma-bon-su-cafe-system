@@ -33,17 +33,18 @@
 | FR-11 | จัดการเมนู | ทำงาน: เพิ่ม/แก้ไข/soft delete; ตั้ง base price, หมวด, ชื่อ, รูป; ไม่มี base price ต่อ size |
 | FR-12 | อัปโหลดรูปเมนู | ทำงานผ่าน base64 endpoint แต่ไม่ยืนยัน MIME จากเนื้อหาไฟล์ |
 | FR-13 | เข้าสู่ระบบและบังคับสิทธิ์ตาม role | ทำงาน: scrypt password hash, SHA-256 session token, HttpOnly SameSite=Lax cookie อายุ 12 ชั่วโมง, role guard ที่ API; owner จัดการบัญชีพนักงาน |
+| FR-14 (เพิ่มภายหลัง) | บาริสต้าเห็นสูตรวัตถุดิบที่ใช้ตัดสต็อกบนการ์ดคิว และอ่านคำแนะนำเสริมของเมนูได้ | ทำงาน: ตอนสร้างออเดอร์ snapshot วัตถุดิบ/หน่วย/ปริมาณจริงลง `order_items.options_json`; QueueCard แสดงสูตรจาก snapshot; `products.preparation_instructions` เป็นข้อความเสริมที่ snapshot แยกต่างหาก; สูตรไม่ถูกสร้างซ้ำในหน้าคิว |
 
 ## 4. ข้อกำหนดส่วนต่อประสาน
 
 ### 4.1 หน้าจอ
 
 - **Cashier:** หมวด/เมนู, customization modal, cart, payment choice, receipt modal และ browser print.
-- **Barista:** filter สาขา, การ์ดคิว `pending/cooking/ready`, action เปลี่ยนสถานะและยกเลิกเฉพาะคิวที่ยังยกเลิกได้; เปิด stock overview แบบ read-only ได้.
+- **Barista:** filter สาขา, การ์ดคิว `pending/cooking/ready` พร้อมตัวเลือกและสูตรวัตถุดิบจาก snapshot; คำแนะนำเพิ่มเติมแสดงแยก; action เปลี่ยนสถานะและยกเลิกเฉพาะคิวที่ยังยกเลิกได้; เปิด stock overview แบบ read-only ได้.
 - **Owner Analytics:** branch/period filters (`today`, `7d`, `30d`, `all`), KPI รายงาน, queue status, recent-order search/status filters, sales/payment/top products.
 - **Login:** ชื่อผู้ใช้/รหัสผ่าน; หน้าจอหลักและ API ที่เห็นขึ้นกับ role.
 - **Owner Staff:** เพิ่มพนักงาน, กำหนด role, เปิด/ปิดบัญชี และตั้งรหัสผ่านใหม่.
-- **Menu Manager:** ค้นหา/กรองเมนูและ CRUD ตามขอบเขตใน FR-11.
+- **Menu Manager:** ค้นหา/กรองเมนูและ CRUD ตามขอบเขตใน FR-11; owner เพิ่ม/แก้คำแนะนำวิธีชงได้ไม่เกิน 2,000 ตัวอักษรต่อเมนู.
 
 Wireframe เป็นแบบที่เสนอไว้และอาจไม่เท่ากับ UI ปัจจุบันทุกจุด ดูความต่างที่บันทึกใน `wk10-wireframe.md`.
 
@@ -51,10 +52,10 @@ Wireframe เป็นแบบที่เสนอไว้และอาจ�
 
 | Method | Endpoint | ผลลัพธ์หลัก |
 |---|---|---|
-| GET | `/api/products` | categories + active products + options |
+| GET | `/api/products` | categories + active products (รวม `preparation_instructions`) + options |
 | GET | `/api/categories`, `/api/branches` | รายการหมวด/สาขา |
 | POST | `/api/upload` | URL รูปที่บันทึก |
-| POST / PUT / DELETE | `/api/products`, `/api/products/:id` | สร้าง/แก้ไข/ซ่อนเมนู |
+| POST / PUT / DELETE | `/api/products`, `/api/products/:id` | สร้าง/แก้ไข/ซ่อนเมนู; POST/PUT รับ `preparationInstructions` แบบ optional |
 | POST | `/api/orders` | สร้างหัวออเดอร์และรายการ |
 | GET | `/api/orders/queue`, `/api/orders/queue/stats` | รายการคิว/สรุปจำนวน; รองรับ `branchId` |
 | PATCH / DELETE | `/api/orders/:id/status`, `/api/orders/:id` | เปลี่ยนสถานะ/ยกเลิก |
@@ -68,7 +69,7 @@ Wireframe เป็นแบบที่เสนอไว้และอาจ�
 
 ## 5. Data Requirements
 
-Runtime schema มี 13 ตาราง รวม `users` และ `sessions` สำหรับ role/session; ราคาเป็น integer บาท; option และ snapshot วัตถุดิบที่ใช้ถูกเก็บใน `order_items.options_json`. DDL ที่ startup สร้างอยู่ใน `backend/db.js`; `backend/schema.sql` เป็น reference copy ไม่ได้ถูก execute ตอน startup.
+Runtime schema มี 13 ตาราง รวม `users` และ `sessions` สำหรับ role/session; ราคาเป็น integer บาท; `products.preparation_instructions` เก็บวิธีชงปัจจุบันของเมนู ขณะที่ตัวเลือก วิธีชง ณ เวลาสั่ง และ snapshot วัตถุดิบที่ใช้ถูกเก็บใน `order_items.options_json`. DDL ที่ startup สร้างอยู่ใน `backend/db.js`; `backend/schema.sql` เป็น reference copy ไม่ได้ถูก execute ตอน startup.
 
 ## 6. Constraints และคุณภาพที่ยังไม่ยืนยัน
 

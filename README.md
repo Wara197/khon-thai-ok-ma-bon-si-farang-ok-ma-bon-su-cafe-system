@@ -61,7 +61,7 @@ npm run create-user -- --username owner --role owner
 | GET | `/api/products` | หมวดหมู่ เมนูที่เปิดขาย และตัวเลือก |
 | GET | `/api/categories` | หมวดหมู่ |
 | GET | `/api/branches` | สาขา |
-| POST | `/api/upload` | บันทึกรูปจาก base64 |
+| POST | `/api/upload` | owner-only; PNG/JPEG/WEBP/GIF, ตรวจ signature และจำกัด 15 MB |
 | POST | `/api/products` | เพิ่มเมนู |
 | PUT / DELETE | `/api/products/:id` | แก้ไข/ซ่อนเมนู |
 | POST | `/api/orders` | สร้างออเดอร์และบันทึกวิธีชำระที่เลือก |

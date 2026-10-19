@@ -42,7 +42,7 @@
 
 - Class diagram แสดง backend BCM; Object diagram ใน wk06 เป็น snapshot จาก seed fixture ที่ระบุใน `backend/db.js` ไม่ใช่ order ปัจจุบันจากระบบ.
 - Architecture 4+1 ใน wk11 ประกอบด้วย Logical, Development, Process, Physical และ Scenarios. เลือกแสดงภาพรวม 1–2 มุมมองตามเวลาที่เหลือ แล้วชี้ว่าทั้งหมดอธิบายระบบเดียวกัน.
-- wk13 มี manual API smoke result สำหรับ create order → queue → status → owner report ในฐานข้อมูลแยก; TC-01–TC-14 ยังไม่ execute ครบ และยังไม่มีหลักฐานการซ้อมผ่าน UI. TC-13/TC-14 ซึ่งเพิ่มจาก stock overview และสูตรน้ำตาลยังไม่รัน. ระบุขอบเขตนี้ตาม [execution log](./wk13-execution-log.md); การ demo ไม่แทนผลทดสอบครบทุกกรณี.
+- wk13 บันทึก UI walkthrough, API checks และ fault injection ในฐานข้อมูลแยกสำหรับ TC-01–TC-14; TC-15–TC-16 ที่เพิ่มภายหลังยังไม่ทดสอบ. รอบนี้ไม่ได้วัด performance/usability และไม่ใช่หลักฐานการซ้อมนำเสนอ. อ้างอิงขอบเขตรายกรณีตาม [execution log](./wk13-execution-log.md).
 
 ## 3. ข้อเท็จจริงสำหรับ Q&A
 

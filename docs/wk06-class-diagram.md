@@ -105,6 +105,7 @@ classDiagram
   }
   class Product {
     <<entity>>
+    +preparation_instructions TEXT
     +findAllActive()
     +findById(id)
     +create(data)
@@ -172,6 +173,8 @@ classDiagram
   Order --> Database
   Inventory --> Database
 ```
+
+`Product` เก็บคำแนะนำวิธีชงที่เจ้าของร้านแก้ไขได้; `Order.createItem()` รับ snapshot ใน `options_json` ผ่าน `orderController` เพื่อให้ข้อมูลคงเดิมในคิวที่สร้างแล้ว
 
 ## Object Diagram จากข้อมูล Seed
 

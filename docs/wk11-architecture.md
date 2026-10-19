@@ -33,7 +33,7 @@ flowchart LR
   API -->|HTTP JSON /api| Routes
 ```
 
-หน้าขายสร้างคำสั่งซื้อและเรียก API; บาริสต้าดึงคิว เปลี่ยนสถานะ และอ่าน stock overview ได้; Owner ดูรายงาน จัดการเมนู ผู้ใช้ และวัตถุดิบ. Role guard จำกัด API ตามบทบาท โดยเฉพาะ inventory GET เปิดให้ owner/barista แต่ mutation เปิดให้ owner. การตัดสต็อกและการบันทึกออเดอร์อยู่ใน SQLite transaction ตาม implementation.
+หน้าขายสร้างคำสั่งซื้อและเรียก API; บาริสต้าดึงคิวที่มีตัวเลือก สูตรวัตถุดิบจาก snapshot ที่ใช้ตัดสต็อก และข้อความวิธีชงเสริม เปลี่ยนสถานะ และอ่าน stock overview ได้; Owner ดูรายงาน จัดการเมนู (รวมวิธีชง) ผู้ใช้ และวัตถุดิบ. Role guard จำกัด API ตามบทบาท โดยเฉพาะ inventory GET เปิดให้ owner/barista แต่ mutation เปิดให้ owner. การตัดสต็อกและการบันทึกออเดอร์อยู่ใน SQLite transaction ตาม implementation.
 
 ## 2. Development View — โครงสร้างซอร์ส
 
@@ -41,7 +41,7 @@ flowchart LR
 backend/
   server.js
   db.js
-  middleware/auth.js
+  auth/middleware.js
   routes/                 HTTP routes
   controllers/            validation and use-case logic
   entities/               SQLite queries
@@ -53,6 +53,8 @@ frontend/src/
     barista/               queue and status actions
     owner/                 dashboard, menus, inventory
 ```
+
+`MenuManager.jsx` แก้คำแนะนำวิธีชงในข้อมูล Product; `QueueCard.jsx` แสดงสูตรวัตถุดิบจาก `inventoryConsumptions` snapshot ที่ใช้ตัดสต็อกจริง และแสดง `preparationInstructions` เป็นข้อความเสริมแยกกัน. คิวเก่าที่ snapshot มีเพียง ID/ปริมาณอาจเติมชื่อและหน่วยจากข้อมูลคลังปัจจุบันตาม logic ของ `Order.findQueue()`.
 
 Backend ใช้ Node.js/Express และ `sqlite3`; startup สร้าง/migrate schema และ seed ข้อมูลรวม inventory น้ำตาลกับ recipe rules ตามระดับความหวาน. Runtime มี 13 ตารางตามที่ระบุในภาคผนวก as-built; `product_recipes` คงไว้เพื่อ migration compatibility ขณะที่ `product_recipe_rules` เป็นกฎสูตรปัจจุบัน. Frontend ใช้ React 19 และ Vite. เส้นทาง upload และ branch listing บางส่วนถูกจัดการใน route โดยตรง จึงไม่ใช่การแยก BCM ที่สมบูรณ์ทุกกรณี.
 
@@ -68,13 +70,14 @@ sequenceDiagram
   participant Owner as Owner UI
   Cashier->>UI: เลือกสินค้า ตัวเลือก และวิธีชำระ
   UI->>API: POST /api/orders
-  API->>DB: ตรวจสูตร/สต็อก จองคิว บันทึก order และตัด stock ใน transaction
+  API->>DB: อ่าน Product/options, ตรวจสูตรสต็อก, จองคิว และบันทึก order/items พร้อม snapshot การใช้วัตถุดิบและข้อความวิธีชงเสริม
+  API->>DB: ตัด stock และบันทึก movement ใน transaction
   DB-->>API: commit หรือ rollback
   API-->>UI: order no, queue no, ยอดรวม
   loop polling ทุก 3 วินาที
     Barista->>API: GET /api/orders/queue
     API->>DB: อ่านคิวที่ยังทำงาน
-    DB-->>Barista: รายการคิว
+    DB-->>Barista: รายการคิวพร้อม options_json, สูตรวัตถุดิบ snapshot และข้อความวิธีชงเสริม
   end
   Barista->>API: PATCH /api/orders/:id/status
   API->>DB: เปลี่ยนสถานะตามกฎ
@@ -110,7 +113,7 @@ flowchart LR
 
 ### Scenario A: รับออเดอร์และส่งเข้าคิว
 
-แคชเชียร์เลือกเมนูจาก Cashier UI (Logical/Development) ซึ่งเรียก REST API บน Express host (Physical). Route ตรวจ session/role แล้ว controller ตรวจ option, ราคา, สูตรและสต็อก ก่อน entity บันทึกเลขคิว, order, order items และ stock ใน transaction (Process). Barista UI อ่านคิวด้วย polling ในรอบถัดไป. ถ้าข้อมูลไม่ผ่าน validation หรือ stock ไม่พอ ระบบคืน error และ transaction ไม่ commit.
+แคชเชียร์เลือกเมนูจาก Cashier UI (Logical/Development) ซึ่งเรียก REST API บน Express host (Physical). Route ตรวจ session/role แล้ว controller อ่าน Product/options, ตรวจราคา สูตรและสต็อก ก่อน entity บันทึกเลขคิว, order, order items พร้อม snapshot การใช้วัตถุดิบและข้อความวิธีชงเสริม รวมถึง stock ใน transaction (Process). Barista UI อ่านสูตรและข้อความจาก snapshot พร้อมคิวด้วย polling ในรอบถัดไป. ถ้าข้อมูลไม่ผ่าน validation หรือ stock ไม่พอ ระบบคืน error และ transaction ไม่ commit.
 
 ### Scenario B: เปลี่ยนสถานะและดูรายงาน
 
