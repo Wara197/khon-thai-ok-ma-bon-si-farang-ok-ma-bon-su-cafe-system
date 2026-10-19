@@ -269,7 +269,7 @@ async function seedInventoryAndRecipes() {
   const gramsByPercent = { 0: 0, 25: 3, 50: 6, 75: 9, 100: 12 };
   if (sugar) {
     for (const option of sweetOptions) {
-      const percent = Number(option.name.match(/(\\d+)\\s*%/)?.[1]);
+      const percent = Number(option.name.match(/(\d+)\s*%/)?.[1]);
       const grams = gramsByPercent[percent];
       if (!Number.isFinite(grams) || grams <= 0) continue;
       for (const product of beverageProducts) {

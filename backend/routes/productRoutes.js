@@ -21,19 +21,27 @@ router.post("/upload", requireRoles("owner"), async (req, res) => {
       return res.status(400).json({ error: "ไม่พบข้อมูลรูปภาพที่อัปโหลด" });
     }
 
-    const matches = data.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-    let buffer;
-    let ext = "png";
+    const matches = data.match(/^data:(image\/(?:png|jpeg|webp|gif));base64,([A-Za-z0-9+/]+={0,2})$/i);
+    if (!matches) {
+      return res.status(400).json({ error: "รูปแบบไฟล์ไม่ถูกต้อง รองรับ JPG, PNG, WEBP และ GIF เท่านั้น" });
+    }
 
-    if (matches && matches.length === 3) {
-      const mime = matches[1].toLowerCase();
-      if (mime.includes("jpeg") || mime.includes("jpg")) ext = "jpg";
-      else if (mime.includes("webp")) ext = "webp";
-      else if (mime.includes("gif")) ext = "gif";
-      else ext = "png";
-      buffer = Buffer.from(matches[2], "base64");
-    } else {
-      buffer = Buffer.from(data, "base64");
+    const mime = matches[1].toLowerCase();
+    const ext = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif" }[mime];
+    const buffer = Buffer.from(matches[2], "base64");
+    const isPng = buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+    const isJpeg = buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+    const isWebp = buffer.length >= 12 && buffer.toString("ascii", 0, 4) === "RIFF" && buffer.toString("ascii", 8, 12) === "WEBP";
+    const isGif = buffer.length >= 6 && ["GIF87a", "GIF89a"].includes(buffer.toString("ascii", 0, 6));
+    const signatureMatches = (mime === "image/png" && isPng)
+      || (mime === "image/jpeg" && isJpeg)
+      || (mime === "image/webp" && isWebp)
+      || (mime === "image/gif" && isGif);
+    if (!signatureMatches) {
+      return res.status(400).json({ error: "เนื้อหาไฟล์ไม่ตรงกับชนิดรูปภาพที่ระบุ" });
+    }
+    if (buffer.length > 15 * 1024 * 1024) {
+      return res.status(400).json({ error: "ขนาดไฟล์รูปภาพต้องไม่เกิน 15MB" });
     }
 
     const filename = `menu-${Date.now()}-${Math.floor(Math.random() * 10000)}.${ext}`;
