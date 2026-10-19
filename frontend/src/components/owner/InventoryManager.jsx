@@ -69,6 +69,10 @@ export default function InventoryManager() {
     return groups;
   }, new Map()).values()];
 
+  // ใช้หน่วยของวัตถุดิบที่เลือกกำกับช่องปริมาณ เพื่อป้องกันการบันทึกสูตรผิดหน่วย
+  const selectedRecipeInventory = items.find((item) => String(item.id) === String(recipeForm.inventoryId));
+  const recipeOptionType = recipeForm.optionType || "base";
+
   const low = items.filter((item) => Number(item.stock_qty) <= Number(item.min_threshold));
   return <section className="inventory-manager owner-section-box">
     <div className="section-box-header">
@@ -104,29 +108,63 @@ export default function InventoryManager() {
         </label>
         <button type="button" onClick={() => save(item)} disabled={savingId === item.id}><Save size={15} /> {savingId === item.id ? "กำลังบันทึก" : "บันทึก"}</button>
         <div className="inventory-receive-controls">
-          <input type="number" min="0.01" step="0.01" placeholder={`รับเข้า (${item.unit})`} value={receiveForm[item.id]?.quantity || ""} onChange={(event) => setReceiveForm((current) => ({ ...current, [item.id]: { ...current[item.id], quantity: event.target.value } }))} />
-          <input placeholder="หมายเหตุ (ถ้ามี)" value={receiveForm[item.id]?.note || ""} onChange={(event) => setReceiveForm((current) => ({ ...current, [item.id]: { ...current[item.id], note: event.target.value } }))} />
+          <label className="inventory-receive-quantity">
+            <input aria-label={`จำนวนรับเข้า (${item.unit})`} type="number" min="0.01" step="0.01" placeholder="จำนวน" value={receiveForm[item.id]?.quantity || ""} onChange={(event) => setReceiveForm((current) => ({ ...current, [item.id]: { ...current[item.id], quantity: event.target.value } }))} />
+            <span>{item.unit}</span>
+          </label>
+          <input className="inventory-receive-note" placeholder="หมายเหตุ (ถ้ามี)" value={receiveForm[item.id]?.note || ""} onChange={(event) => setReceiveForm((current) => ({ ...current, [item.id]: { ...current[item.id], note: event.target.value } }))} />
           <button type="button" onClick={() => receive(item)}>รับเข้า</button>
         </div>
       </div>)}
     </div>
     <section className="recipe-manager">
       <h3>สูตรใช้วัตถุดิบต่อเมนู</h3>
-      <form className="inventory-add-form" onSubmit={saveRecipeEntry}>
-        <select required value={recipeForm.productId} onChange={(event) => setRecipeForm({ ...recipeForm, productId: event.target.value })}><option value="">เลือกเมนู</option>{products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}</select>
-        <select required value={recipeForm.inventoryId} onChange={(event) => setRecipeForm({ ...recipeForm, inventoryId: event.target.value })}><option value="">เลือกวัตถุดิบ</option>{items.map((item) => <option key={item.id} value={item.id}>{item.name} ({item.unit})</option>)}</select>
-        <select value={recipeForm.optionType || "base"} onChange={(event) => setRecipeForm({ ...recipeForm, optionType: event.target.value, optionId: "" })}><option value="base">ใช้ทุกตัวเลือก</option><option value="size">แทนค่าตามขนาดแก้ว</option><option value="temperature">แทนค่าตามประเภทเครื่องดื่ม</option><option value="sweetness">แทนค่าตามระดับความหวาน</option><option value="bakery_option">แทนค่าตามวิธีเสิร์ฟเบเกอรี่</option></select>
-        {recipeForm.optionType && recipeForm.optionType !== "base" && <select required value={recipeForm.optionId || ""} onChange={(event) => setRecipeForm({ ...recipeForm, optionId: event.target.value })}><option value="">เลือกตัวเลือก</option>{(productOptions[recipeForm.optionType] || []).map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select>}
-        <input required type="number" min="0.01" step="0.01" placeholder="ใช้ต่อหน่วย" value={recipeForm.quantityPerUnit} onChange={(event) => setRecipeForm({ ...recipeForm, quantityPerUnit: event.target.value })} />
-        <button type="submit"><Plus size={15} /> บันทึกสูตร</button>
+      <form className="recipe-form" onSubmit={saveRecipeEntry}>
+        <div className={`recipe-form-fields ${recipeOptionType === "base" ? "is-base" : "has-option"}`}>
+          <label className="recipe-field">
+            <span>เมนู</span>
+            <select required value={recipeForm.productId} onChange={(event) => setRecipeForm({ ...recipeForm, productId: event.target.value })}><option value="">เลือกเมนู</option>{products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}</select>
+          </label>
+          <label className="recipe-field">
+            <span>วัตถุดิบ</span>
+            <select required value={recipeForm.inventoryId} onChange={(event) => setRecipeForm({ ...recipeForm, inventoryId: event.target.value })}><option value="">เลือกวัตถุดิบ</option>{items.map((item) => <option key={item.id} value={item.id}>{item.name} ({item.unit})</option>)}</select>
+          </label>
+          <label className="recipe-field">
+            <span>สูตรนี้ใช้กับ</span>
+            <select value={recipeOptionType} onChange={(event) => setRecipeForm({ ...recipeForm, optionType: event.target.value, optionId: "" })}>
+              <option value="base">ทุกตัวเลือก (สูตรพื้นฐาน)</option>
+              <option value="size">ขนาดแก้ว</option>
+              <option value="temperature">ประเภทเครื่องดื่ม</option>
+              <option value="sweetness">ระดับความหวาน</option>
+              <option value="bakery_option">วิธีเสิร์ฟเบเกอรี่</option>
+            </select>
+          </label>
+          {recipeOptionType !== "base" && <label className="recipe-field">
+            <span>ตัวเลือกที่ใช้สูตรนี้</span>
+            <select required value={recipeForm.optionId || ""} onChange={(event) => setRecipeForm({ ...recipeForm, optionId: event.target.value })}><option value="">เลือกตัวเลือก</option>{(productOptions[recipeOptionType] || []).map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select>
+          </label>}
+        </div>
+        <div className="recipe-form-action">
+          <label className="recipe-field recipe-quantity-field">
+            <span>ปริมาณต่อ 1 รายการเมนู <small>{selectedRecipeInventory?.unit || "เลือกวัตถุดิบก่อน"}</small></span>
+            <span className="recipe-quantity-control">
+              <input required aria-label={`ปริมาณต่อ 1 รายการเมนู (${selectedRecipeInventory?.unit || "หน่วย"})`} type="number" min="0.01" step="0.01" placeholder="เช่น 120" value={recipeForm.quantityPerUnit} onChange={(event) => setRecipeForm({ ...recipeForm, quantityPerUnit: event.target.value })} />
+              <span>{selectedRecipeInventory?.unit || "หน่วย"}</span>
+            </span>
+          </label>
+          <button type="submit"><Plus size={15} /> บันทึกสูตร</button>
+        </div>
       </form>
-      <p className="recipe-help">สูตรตัวเลือกจะใช้แทนสูตรพื้นฐานของวัตถุดิบรายการเดียวกัน เช่น ขนาด ประเภทเครื่องดื่ม หรือระดับความหวาน</p>
+      {/* แสดงผลของกฎสูตรตรงกับการคำนวณจริง: สูตรเฉพาะแทนวัตถุดิบชนิดเดียวกัน ส่วนรายการอื่นยังมาจากสูตรพื้นฐาน */}
+      <p className="recipe-help">{recipeOptionType === "base"
+        ? "สูตรพื้นฐานใช้กับทุกตัวเลือก เว้นแต่จะกำหนดสูตรเฉพาะเพื่อแทนวัตถุดิบนั้น"
+        : "สูตรเฉพาะนี้จะแทนสูตรพื้นฐานของวัตถุดิบชนิดเดียวกัน ส่วนวัตถุดิบอื่นในสูตรพื้นฐานยังคงใช้ตามเดิม"}</p>
       {recipeGroups.length ? <div className="recipe-list">
         {recipeGroups.map((group) => <section className="recipe-group" key={group.productId} aria-label={`สูตรวัตถุดิบ ${group.productName}`}>
           <div className="recipe-group-header"><h4>{group.productName}</h4><span>{group.recipes.length} สูตร</span></div>
           <div className="recipe-group-entries">{group.recipes.map((recipe) => <div key={`${recipe.inventory_id}-${recipe.option_type}-${recipe.option_id}`} className="recipe-row">
             <span className="recipe-scope">{recipe.option_type === "base" ? "ทุกตัวเลือก" : recipe.option_name || "ตัวเลือก"}</span>
-            <span className="recipe-usage"><strong>{recipe.inventory_name}</strong><span>{recipe.quantity_per_unit} {recipe.unit}/หน่วย</span></span>
+            <span className="recipe-usage"><strong>{recipe.inventory_name}</strong><span><b>{recipe.quantity_per_unit} {recipe.unit}</b> ต่อ 1 รายการเมนู</span></span>
             <button type="button" onClick={() => removeRecipeEntry(recipe)} aria-label={`ลบสูตร ${group.productName}: ${recipe.inventory_name}`}><Trash2 size={15} /></button>
           </div>)}</div>
         </section>)}

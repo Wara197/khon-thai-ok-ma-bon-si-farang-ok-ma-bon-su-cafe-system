@@ -200,6 +200,9 @@ export default function OwnerView({
   const [reportPeriod, setReportPeriod] = useState("today");
   const [lastUpdated, setLastUpdated] = useState(null);
   const [lowStockItems, setLowStockItems] = useState([]);
+  const [inventoryUpdatedAt, setInventoryUpdatedAt] = useState(null);
+  const [inventoryError, setInventoryError] = useState(false);
+  const [freshnessNow, setFreshnessNow] = useState(() => Date.now());
   const latestRequestId = useRef(0);
   const requestController = useRef(null);
   const dataScopeRef = useRef(null);
@@ -298,12 +301,23 @@ export default function OwnerView({
 
   useEffect(() => {
     if (activeOwnerTab !== "analytics") return undefined;
+    const interval = setInterval(() => setFreshnessNow(Date.now()), 5000);
+    return () => clearInterval(interval);
+  }, [activeOwnerTab]);
+
+  useEffect(() => {
+    if (activeOwnerTab !== "analytics") return undefined;
     let active = true;
     const refreshInventoryAlerts = async () => {
       try {
         const result = await fetchInventory();
-        if (active) setLowStockItems(result.lowStock || []);
+        if (active) {
+          setLowStockItems(result.lowStock || []);
+          setInventoryUpdatedAt(new Date());
+          setInventoryError(false);
+        }
       } catch (err) {
+        if (active) setInventoryError(true);
         console.warn("Failed to refresh inventory alerts:", err);
       }
     };
@@ -316,6 +330,12 @@ export default function OwnerView({
 
   const hasCurrentData = data && dataScope === `${dashboardBranch}|${reportPeriod}`;
   const liveQueueError = liveQueueErrorBranch === dashboardBranch;
+  const reportIsStale = !lastUpdated || freshnessNow - lastUpdated.getTime() > 120000;
+  const queueIsStale = !liveQueueUpdatedAt || freshnessNow - liveQueueUpdatedAt.getTime() > 15000;
+  const inventoryIsStale = !inventoryUpdatedAt || freshnessNow - inventoryUpdatedAt.getTime() > 120000;
+  const reportNeedsAttention = Boolean(error) || reportIsStale;
+  const queueNeedsAttention = liveQueueError || queueIsStale;
+  const inventoryNeedsAttention = inventoryError || inventoryIsStale;
   const waitingOrdersOpen = waitingOrdersBranch === dashboardBranch;
 
   if (loading && !hasCurrentData) {
@@ -357,7 +377,11 @@ export default function OwnerView({
 
   // Filter recent orders
   const filteredOrders = (recentOrders || []).filter((ord) => {
-    const matchStatus = statusFilter === "all" ? true : ord.status === statusFilter;
+    const matchStatus = statusFilter === "all"
+      ? true
+      : statusFilter === "active"
+        ? ["pending", "cooking", "ready"].includes(ord.status)
+        : ord.status === statusFilter;
     const matchSearch =
       searchTerm.trim() === ""
         ? true
@@ -379,6 +403,7 @@ export default function OwnerView({
   const periodLabels = { today: "วันนี้", "7d": "7 วันที่ผ่านมา", "30d": "30 วันที่ผ่านมา", all: "ตลอดช่วงข้อมูล" };
   const periodLabel = periodLabels[reportPeriod];
   const hasDashboardFilters = dashboardBranch !== defaultBranch || reportPeriod !== "today" || statusFilter !== "all" || searchTerm.trim() !== "";
+  const hasLedgerFilters = statusFilter !== "all" || searchTerm.trim() !== "";
   const resetDashboardFilters = () => {
     setDashboardBranch(defaultBranch);
     setReportPeriod("today");
@@ -543,18 +568,18 @@ export default function OwnerView({
                   { value: "all", label: "ตลอดช่วงข้อมูล" },
                 ]}
               />
-              <div className={`live-indicator ${error ? "is-stale" : ""}`} title={lastUpdated ? `รายงานอัปเดตล่าสุด ${lastUpdated.toLocaleTimeString("th-TH")}` : "กำลังรอข้อมูลรายงาน"}>
+              <div className={`live-indicator ${reportNeedsAttention ? "is-stale" : ""}`} title={lastUpdated ? `รายงานอัปเดตล่าสุด ${lastUpdated.toLocaleTimeString("th-TH")}` : "กำลังรอข้อมูลรายงาน"}>
                 <span className="live-dot"></span>
-                <span>{error ? "รายงานอาจไม่ล่าสุด" : refreshing ? "กำลังอัปเดตรายงาน" : lastUpdated ? `รายงานอัปเดต ${lastUpdated.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}` : "กำลังเชื่อมต่อรายงาน"}</span>
+                <span>{error ? "รายงานอัปเดตไม่สำเร็จ" : refreshing ? "กำลังอัปเดตรายงาน" : reportIsStale ? "รายงานอาจไม่ล่าสุด" : lastUpdated ? `รายงานอัปเดต ${lastUpdated.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}` : "กำลังเชื่อมต่อรายงาน"}</span>
               </div>
               <button
                 className={`owner-refresh-btn ${refreshing ? "rotating" : ""}`}
                 onClick={() => loadData(true)}
                 disabled={refreshing}
-                title="รีเฟรชข้อมูลล่าสุด"
+                title="รีเฟรชรายงานยอดขาย"
               >
                 <RefreshCw size={16} />
-                <span>รีเฟรช</span>
+                <span>รีเฟรชรายงาน</span>
               </button>
               {hasDashboardFilters && (
                 <button type="button" className="owner-reset-filters" onClick={resetDashboardFilters}>
@@ -570,21 +595,109 @@ export default function OwnerView({
             <span className="owner-low-stock-action">จัดการคลัง →</span>
           </button>}
 
-          {error && hasCurrentData && (
+          {reportNeedsAttention && hasCurrentData && (
             <div className="owner-stale-banner" role="status" aria-live="polite">
               <AlertCircle size={18} />
-              <span>{error} กำลังแสดงข้อมูลล่าสุดที่โหลดได้{lastUpdated ? ` เมื่อ ${lastUpdated.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}` : ""}</span>
+              <span>{error || "รายงานยังไม่ได้รับการยืนยันว่าใหม่อยู่"} กำลังแสดงข้อมูลที่โหลดได้ล่าสุด{lastUpdated ? ` เมื่อ ${lastUpdated.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}` : ""} · ตรวจทุก 60 วินาที</span>
               <button type="button" onClick={() => loadData(true)} disabled={refreshing}>ลองอีกครั้ง</button>
             </div>
           )}
 
-      <div className="owner-report-scope">
+          {inventoryNeedsAttention && (
+            <div className="owner-data-freshness-note" role="status" aria-live="polite">
+              <AlertCircle size={16} aria-hidden="true" />
+              <span>{inventoryError ? "ตรวจคลังวัตถุดิบไม่สำเร็จ" : "ข้อมูลคลังอาจไม่ล่าสุด"}{inventoryUpdatedAt ? ` · ล่าสุด ${inventoryUpdatedAt.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}` : " · ยังไม่มีข้อมูลยืนยัน"} · ตรวจทุก 60 วินาที</span>
+            </div>
+          )}
+
+      <section className="owner-live-queue" aria-labelledby="owner-live-queue-heading">
+        <div className="owner-live-queue-header">
+          <div className="owner-live-queue-title">
+            <div className="owner-queue-icon"><Clock size={19} aria-hidden="true" /></div>
+            <div>
+              <h2 id="owner-live-queue-heading">สถานะคิวปัจจุบัน</h2>
+              <p>ข้อมูลสดของ{currentBranchLabel}</p>
+            </div>
+            <span className={`owner-live-label ${queueNeedsAttention ? "is-stale" : ""}`}>
+              <span className="live-dot" aria-hidden="true"></span>
+              {liveQueueError ? "อัปเดตไม่สำเร็จ" : queueIsStale ? "คิวอาจไม่ล่าสุด" : liveQueueStats?.branch === dashboardBranch ? "สด" : "กำลังเชื่อมต่อ"}
+            </span>
+          </div>
+          {(queueStats.pending > 0 || waitingOrdersOpen) && (
+            <button
+              type="button"
+              className="owner-queue-action"
+              onClick={() => showWaitingOrders()}
+              aria-expanded={waitingOrdersOpen}
+              aria-controls={waitingOrdersOpen ? "owner-waiting-orders" : undefined}
+            >
+              {waitingOrdersOpen ? "ซ่อนรายการคิว" : `ดู ${queueStats.pending} คิวที่รอทำ`}
+              <ChevronDown size={15} className={`owner-queue-action-icon ${waitingOrdersOpen ? "is-open" : ""}`} aria-hidden="true" />
+            </button>
+          )}
+        </div>
+        {/* วางเวลาอัปเดตติดกับตัวเลขคิว เพื่อให้เห็นชัดเมื่อข้อมูลยังไม่สด */}
+        <p className={`owner-queue-freshness ${queueNeedsAttention ? "is-stale" : ""}`} role="status" aria-live="polite">
+          {liveQueueError
+            ? liveQueueUpdatedAt
+              ? `อัปเดตไม่สำเร็จ · แสดงข้อมูลคิวล่าสุด ${liveQueueUpdatedAt.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`
+              : "ยังโหลดคิวสดไม่ได้ · ระบบจะลองอีกครั้งอัตโนมัติ"
+            : liveQueueUpdatedAt
+              ? `${queueIsStale ? "คิวอาจไม่ล่าสุด · " : "คิวอัปเดตล่าสุด "}${liveQueueUpdatedAt.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" })} · ตรวจทุก 5 วินาที`
+              : "กำลังโหลดสถานะคิว"}
+        </p>
+        <div className="owner-queue-metrics" aria-label="จำนวนคิวตามสถานะ">
+          <div><span>คิวที่ยังไม่เสร็จ</span><strong>{queueStats.active} <small>คิว</small></strong></div>
+          <div><span>รอทำ</span><strong>{queueStats.pending}</strong></div>
+          <div><span>กำลังชง</span><strong>{queueStats.cooking}</strong></div>
+          <div><span>พร้อมเสิร์ฟ</span><strong>{queueStats.ready}</strong></div>
+        </div>
+        {waitingOrdersOpen && (
+          <div className="owner-waiting-orders" id="owner-waiting-orders">
+              <div className="owner-waiting-orders-heading">
+              <h3>ออเดอร์ที่รอเริ่มทำ</h3>
+              {waitingOrdersState?.branch === dashboardBranch && !waitingOrdersLoading && !waitingOrdersError && (
+                  <span>{waitingOrdersState.orders.length} คิว · โหลดเมื่อ {waitingOrdersState.updatedAt.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span>
+              )}
+                {!waitingOrdersLoading && !waitingOrdersError && <button type="button" onClick={() => showWaitingOrders(true)}>โหลดใหม่</button>}
+            </div>
+            {waitingOrdersLoading ? (
+              <p className="owner-queue-list-message" role="status">กำลังโหลดคิวปัจจุบัน…</p>
+            ) : waitingOrdersError ? (
+              <div className="owner-queue-list-error" role="alert">
+                <span>โหลดรายการคิวไม่สำเร็จ</span>
+                <button type="button" onClick={() => showWaitingOrders(true)}>ลองอีกครั้ง</button>
+              </div>
+            ) : waitingOrdersState?.branch === dashboardBranch && waitingOrdersState.orders.length > 0 ? (
+              <ul className="owner-waiting-order-list">
+                {waitingOrdersState.orders.map((order) => (
+                  <li key={order.id}>
+                    <span className="queue-pill">คิว A-{order.queue_no}</span>
+                    <div className="owner-waiting-order-copy">
+                      <strong>{order.order_no}</strong>
+                      <span>{(order.items || []).map((item) => `${item.product_name} ×${item.quantity}`).join(" · ")}</span>
+                    </div>
+                    <span className="owner-waiting-order-time">
+                      {new Date(order.created_at).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })} น.
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="owner-queue-list-message">ตอนนี้ไม่มีออเดอร์ที่รอเริ่มทำ</p>
+            )}
+          </div>
+        )}
+      </section>
+
+
+<div className="owner-report-scope">
         <div className="owner-report-scope-copy">
           <span className="owner-scope-label">ขอบเขตรายงาน</span>
           <strong>{currentBranchLabel}</strong>
           <span className="owner-scope-divider" aria-hidden="true">·</span>
           <strong>{periodLabel}</strong>
-          <span className="owner-scope-updated">รายงานอัปเดต {lastUpdated ? lastUpdated.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" }) : "กำลังโหลด"}</span>
+          <span className={`owner-scope-updated ${reportNeedsAttention ? "is-stale" : ""}`}>รายงาน {reportNeedsAttention ? "อาจไม่ล่าสุด" : "อัปเดตแล้ว"} {lastUpdated ? lastUpdated.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" }) : "กำลังโหลด"} · ตรวจทุก 60 วิ</span>
         </div>
         <details className="owner-metric-help">
           <summary><Info size={16} aria-hidden="true" /> ความหมายตัวเลข</summary>
@@ -649,86 +762,6 @@ export default function OwnerView({
       </div>
       </section>
 
-      <section className="owner-live-queue" aria-labelledby="owner-live-queue-heading">
-        <div className="owner-live-queue-header">
-          <div className="owner-live-queue-title">
-            <div className="owner-queue-icon"><Clock size={19} aria-hidden="true" /></div>
-            <div>
-              <h2 id="owner-live-queue-heading">สถานะคิวปัจจุบัน</h2>
-              <p>ข้อมูลสดของ{currentBranchLabel}</p>
-            </div>
-            <span className={`owner-live-label ${liveQueueError ? "is-stale" : ""}`}>
-              <span className="live-dot" aria-hidden="true"></span>
-              {liveQueueError ? "อัปเดตไม่สำเร็จ" : liveQueueStats?.branch === dashboardBranch ? "สด" : "กำลังเชื่อมต่อ"}
-            </span>
-          </div>
-          {(queueStats.pending > 0 || waitingOrdersOpen) && (
-            <button
-              type="button"
-              className="owner-queue-action"
-              onClick={() => showWaitingOrders()}
-              aria-expanded={waitingOrdersOpen}
-              aria-controls={waitingOrdersOpen ? "owner-waiting-orders" : undefined}
-            >
-              {waitingOrdersOpen ? "ซ่อนรายการคิว" : `ดู ${queueStats.pending} คิวที่รอทำ`}
-              <ChevronDown size={15} className={`owner-queue-action-icon ${waitingOrdersOpen ? "is-open" : ""}`} aria-hidden="true" />
-            </button>
-          )}
-        </div>
-        {/* วางเวลาอัปเดตติดกับตัวเลขคิว เพื่อให้เห็นชัดเมื่อข้อมูลยังไม่สด */}
-        <p className={`owner-queue-freshness ${liveQueueError ? "is-stale" : ""}`} role="status" aria-live="polite">
-          {liveQueueError
-            ? liveQueueUpdatedAt
-              ? `อัปเดตไม่สำเร็จ · แสดงข้อมูลคิวล่าสุด ${liveQueueUpdatedAt.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`
-              : "ยังโหลดคิวสดไม่ได้ · ระบบจะลองอีกครั้งอัตโนมัติ"
-            : liveQueueUpdatedAt
-              ? `คิวอัปเดตล่าสุด ${liveQueueUpdatedAt.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`
-              : "กำลังโหลดสถานะคิว"}
-        </p>
-        <div className="owner-queue-metrics" aria-label="จำนวนคิวตามสถานะ">
-          <div><span>คิวที่ยังไม่เสร็จ</span><strong>{queueStats.active} <small>คิว</small></strong></div>
-          <div><span>รอทำ</span><strong>{queueStats.pending}</strong></div>
-          <div><span>กำลังชง</span><strong>{queueStats.cooking}</strong></div>
-          <div><span>พร้อมเสิร์ฟ</span><strong>{queueStats.ready}</strong></div>
-        </div>
-        {waitingOrdersOpen && (
-          <div className="owner-waiting-orders" id="owner-waiting-orders">
-              <div className="owner-waiting-orders-heading">
-              <h3>ออเดอร์ที่รอเริ่มทำ</h3>
-              {waitingOrdersState?.branch === dashboardBranch && !waitingOrdersLoading && !waitingOrdersError && (
-                  <span>{waitingOrdersState.orders.length} คิว · โหลดเมื่อ {waitingOrdersState.updatedAt.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span>
-              )}
-                {!waitingOrdersLoading && !waitingOrdersError && <button type="button" onClick={() => showWaitingOrders(true)}>โหลดใหม่</button>}
-            </div>
-            {waitingOrdersLoading ? (
-              <p className="owner-queue-list-message" role="status">กำลังโหลดคิวปัจจุบัน…</p>
-            ) : waitingOrdersError ? (
-              <div className="owner-queue-list-error" role="alert">
-                <span>โหลดรายการคิวไม่สำเร็จ</span>
-                <button type="button" onClick={() => showWaitingOrders(true)}>ลองอีกครั้ง</button>
-              </div>
-            ) : waitingOrdersState?.branch === dashboardBranch && waitingOrdersState.orders.length > 0 ? (
-              <ul className="owner-waiting-order-list">
-                {waitingOrdersState.orders.map((order) => (
-                  <li key={order.id}>
-                    <span className="queue-pill">คิว A-{order.queue_no}</span>
-                    <div className="owner-waiting-order-copy">
-                      <strong>{order.order_no}</strong>
-                      <span>{(order.items || []).map((item) => `${item.product_name} ×${item.quantity}`).join(" · ")}</span>
-                    </div>
-                    <span className="owner-waiting-order-time">
-                      {new Date(order.created_at).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })} น.
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="owner-queue-list-message">ตอนนี้ไม่มีออเดอร์ที่รอเริ่มทำ</p>
-            )}
-          </div>
-        )}
-      </section>
-
       {/* Middle Grid: Top Products & Payment Methods */}
       <div className="owner-middle-grid">
         {/* Top 5 Products */}
@@ -736,9 +769,9 @@ export default function OwnerView({
           <div className="section-box-header">
             <div className="box-title-group">
               <Flame size={20} className="text-amber-500" />
-              <h2>5 เมนูขายดีที่สุด</h2>
+              <h2>เมนูขายดี</h2>
             </div>
-            <span className="section-tag">{periodLabel} · เรียงตามจำนวนที่ขาย</span>
+            <span className="section-tag">{periodLabel} · จำนวนชิ้น · เทียบกับอันดับ 1</span>
           </div>
 
           <div className="top-products-list">
@@ -755,18 +788,19 @@ export default function OwnerView({
                           <strong>{prod.total_qty}</strong> ชิ้น · ฿{prod.total_revenue.toLocaleString()}
                         </span>
                       </div>
-                      <div className="progress-track">
+                      <div className="progress-track" role="progressbar" aria-label={`${prod.name} เทียบกับเมนูอันดับ 1`} aria-valuemin="0" aria-valuemax="100" aria-valuenow={percent}>
                         <div
                           className="progress-bar"
                           style={{ width: `${percent}%` }}
                         ></div>
                       </div>
+                      <span className="top-product-scale">{percent}% ของเมนูอันดับ 1</span>
                     </div>
                   </div>
                 );
               })
             ) : (
-              <div className="empty-box">ยังไม่มีข้อมูลยอดขายเมนู</div>
+              <div className="empty-box">ยังไม่มีเมนูขายในช่วงนี้</div>
             )}
           </div>
         </div>
@@ -807,15 +841,19 @@ export default function OwnerView({
       </div>
 
       {/* Bottom Section: Recent Orders Table */}
-      <div className="owner-section-box orders-table-box" id="owner-orders">
-        <div className="table-box-header">
+      <details className="owner-section-box orders-table-box owner-ledger-details" id="owner-orders">
+        <summary className="owner-ledger-summary">
           <div className="box-title-group">
-            <ShoppingBag size={20} className="text-blue-500" />
+            <ShoppingBag size={20} aria-hidden="true" />
             <h2>รายการสั่งซื้อล่าสุด · {currentBranchLabel} · {periodLabel}</h2>
             <span className="order-count-chip">{filteredOrders.length} รายการ</span>
             <span className="ledger-cap-note">แสดงสูงสุด 50 รายการล่าสุด</span>
           </div>
+          <span className="owner-ledger-toggle">ดูตาราง <ChevronDown size={16} aria-hidden="true" /></span>
+        </summary>
 
+        <div className="owner-ledger-content">
+        <div className="table-box-header">
           <div className="table-controls">
             {/* Search Box */}
             <div className="table-search-input">
@@ -837,9 +875,7 @@ export default function OwnerView({
               icon={ListFilter}
               options={[
                 { value: "all", label: "ทุกสถานะ" },
-                { value: "pending", label: "รอทำ" },
-                { value: "cooking", label: "กำลังชง" },
-                { value: "ready", label: "พร้อมเสิร์ฟ" },
+                { value: "active", label: "กำลังดำเนินการ" },
                 { value: "completed", label: "เสร็จสิ้น" },
                 { value: "cancelled", label: "ยกเลิก" },
               ]}
@@ -918,14 +954,21 @@ export default function OwnerView({
               ) : (
                 <tr>
                   <td colSpan="4" className="text-center py-8 text-gray-400">
-                    ไม่พบรายการออเดอร์ตามเงื่อนไขที่เลือก
+                    <div className="owner-ledger-empty" role="status">
+                      <strong>{hasLedgerFilters ? "ไม่พบรายการตามตัวกรองนี้" : `ยังไม่มีออเดอร์ในช่วง${periodLabel}`}</strong>
+                      {hasLedgerFilters && <>
+                        <span>{searchTerm.trim() ? `คำค้น “${searchTerm.trim()}”` : "ตรวจสอบสถานะที่เลือก"}</span>
+                        <button type="button" className="ledger-clear-btn" onClick={() => { setSearchTerm(""); setStatusFilter("all"); }}>ล้างตัวกรอง</button>
+                      </>}
+                    </div>
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-      </div>
+        </div>
+      </details>
     </>
   )}
 </div>

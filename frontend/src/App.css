@@ -707,11 +707,32 @@
 .inventory-stock-control { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
 .inventory-stock-unit { color: var(--color-primary-700); line-height: 1.4; }
 .inventory-row button { display: inline-flex; align-items: center; gap: 5px; border: 0; border-radius: 6px; padding: 8px 10px; background: var(--color-primary-800); color: white; cursor: pointer; }
-.inventory-receive-controls { display: flex; grid-column: 1 / -1; gap: 8px; padding-top: 4px; border-top: 1px solid var(--color-cream-200); }
-.inventory-receive-controls input:nth-child(2) { flex: 1; width: auto; }
+.inventory-receive-controls { display: grid; grid-template-columns: minmax(190px, .36fr) minmax(180px, 1fr) auto; align-items: center; grid-column: 1 / -1; gap: 8px; padding-top: 8px; border-top: 1px solid var(--color-cream-200); }
+.inventory-receive-quantity { min-width: 0; display: flex; align-items: center; gap: 8px; }
+.inventory-receive-quantity input { width: 100%; min-width: 0; }
+.inventory-receive-quantity span { flex: 0 0 auto; color: var(--color-primary-700); font-size: .85rem; }
+.inventory-receive-controls .inventory-receive-note { width: 100%; min-width: 0; }
+.inventory-receive-controls button { justify-content: center; min-width: 82px; }
 .recipe-manager { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--color-cream-300); }
 .recipe-manager h3 { margin: 0 0 12px; color: var(--color-primary-900); }
-.recipe-manager select { min-width: 0; padding: 9px 10px; border: 1px solid var(--color-cream-300); border-radius: 6px; background: var(--color-surface-white); }
+/* กำหนดลำดับกรอกสูตรเป็นสองช่วง: เลือกเมนู/วัตถุดิบ/ขอบเขตก่อน แล้วระบุปริมาณ */
+.recipe-form { display: grid; gap: 12px; margin: 0 0 10px; }
+.recipe-form-fields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 12px; }
+.recipe-field { display: grid; align-content: start; gap: 6px; min-width: 0; color: var(--color-primary-800); font-size: .86rem; font-weight: 600; }
+.recipe-form-fields > .recipe-field { grid-column: span 2; }
+.recipe-form-fields.is-base > .recipe-field:nth-child(3) { grid-column: 1 / -1; }
+.recipe-manager select, .recipe-manager input { width: 100%; min-width: 0; min-height: 42px; padding: 9px 11px; border: 1px solid var(--color-cream-300); border-radius: 8px; background: var(--color-surface-white); color: var(--color-primary-900); font: inherit; }
+.recipe-manager select:focus-visible, .recipe-manager input:focus-visible { outline: 2px solid var(--color-primary-700); outline-offset: 2px; }
+.recipe-form-action { display: flex; align-items: end; gap: 10px; }
+.recipe-quantity-field { flex: 1 1 260px; }
+.recipe-quantity-field > span:first-child { display: flex; align-items: center; gap: 8px; }
+.recipe-quantity-field small { color: var(--color-primary-700); font-size: .8rem; font-weight: 500; }
+.recipe-quantity-control { display: flex; align-items: center; gap: 8px; }
+.recipe-quantity-control input { max-width: 260px; font-variant-numeric: tabular-nums; }
+.recipe-quantity-control > span { flex: 0 0 auto; min-width: 48px; color: var(--color-primary-700); font-weight: 500; }
+.recipe-form-action > button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 42px; padding: 9px 15px; border: 0; border-radius: 8px; background: var(--color-primary-800); color: var(--color-surface-white); font: inherit; font-weight: 650; white-space: nowrap; cursor: pointer; }
+.recipe-form-action > button:hover { background: var(--color-primary-900); }
+.recipe-form-action > button:focus-visible { outline: 2px solid var(--color-primary-700); outline-offset: 3px; }
 .recipe-list { display: grid; gap: 18px; }
 .recipe-group { min-width: 0; padding-bottom: 14px; border-bottom: 1px solid var(--color-cream-300); }
 .recipe-group:last-child { padding-bottom: 0; border-bottom: 0; }
@@ -723,11 +744,12 @@
 .recipe-scope { width: fit-content; padding: 4px 8px; border-radius: var(--radius-sm); background: var(--color-cream-100); color: var(--color-primary-700); font-size: .82rem; }
 .recipe-usage { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; min-width: 0; color: var(--color-primary-700); font-size: .86rem; }
 .recipe-usage strong { color: var(--color-primary-900); font-weight: 600; }
+.recipe-usage b { color: var(--color-primary-900); font-variant-numeric: tabular-nums; }
 .recipe-row button { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border: 0; border-radius: var(--radius-sm); background: transparent; color: #a44; cursor: pointer; }
 .recipe-row button:hover { background: var(--color-cream-200); }
 .recipe-row button:focus-visible { outline: 2px solid var(--color-primary-700); outline-offset: 2px; }
 .recipe-empty { margin: 0; padding: 12px 0; color: var(--color-primary-700); font-size: .9rem; }
-.recipe-help { margin: -4px 0 12px; color: var(--color-primary-700); font-size: .85rem; }
+.recipe-help { margin: 0 0 12px; color: var(--color-primary-700); font-size: .85rem; line-height: 1.55; }
 .inventory-history { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--color-cream-300); }
 .inventory-history h3 { margin: 0 0 12px; color: var(--color-primary-900); }
 .inventory-history-list { display: grid; max-height: 320px; overflow: auto; }
@@ -750,9 +772,29 @@
 .barista-stock-status, .barista-stock-error { color: var(--color-primary-700); font-size: .82rem; }
 .barista-stock-item.is-low .barista-stock-status, .barista-stock-error { color: #98452f; font-weight: 700; }
 @media (max-width: 600px) { .barista-stock-heading { align-items: flex-start; flex-direction: column; } .barista-stock-updated { width: 100%; justify-content: space-between; } }
-@media (max-width: 900px) { .inventory-row, .inventory-add-form { grid-template-columns: 1fr 1fr; } }
-@media (max-width: 600px) { .inventory-row { grid-template-columns: 1fr; } .inventory-stock-field { justify-content: space-between; } .inventory-row > button { justify-content: center; } .inventory-receive-controls { flex-wrap: wrap; } }
+@media (max-width: 900px) {
+  .inventory-row, .inventory-add-form { grid-template-columns: 1fr 1fr; }
+  .recipe-form-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .recipe-form-fields > .recipe-field, .recipe-form-fields.is-base > .recipe-field:nth-child(3) { grid-column: auto; }
+  .recipe-form-fields.is-base > .recipe-field:nth-child(3) { grid-column: 1 / -1; }
+}
+@media (max-width: 600px) {
+  .inventory-row { grid-template-columns: 1fr; }
+  .inventory-stock-field { justify-content: space-between; }
+  .inventory-row > button { justify-content: center; }
+  .inventory-receive-controls { grid-template-columns: minmax(0, 1fr) auto; }
+  .inventory-receive-quantity { grid-column: 1; grid-row: 1; }
+  .inventory-receive-controls .inventory-receive-note { grid-column: 1 / -1; grid-row: 2; }
+  .inventory-receive-controls > button { grid-column: 2; grid-row: 1; }
+}
 @media (max-width: 680px) { .recipe-row { grid-template-columns: minmax(0, 1fr) 36px; gap: 4px 8px; } .recipe-scope { grid-column: 1; } .recipe-usage { grid-column: 1; } .recipe-row button { grid-column: 2; grid-row: 1 / span 2; } }
+@media (max-width: 600px) {
+  .recipe-form-fields { grid-template-columns: minmax(0, 1fr); }
+  .recipe-form-fields > .recipe-field, .recipe-form-fields.is-base > .recipe-field:nth-child(3) { grid-column: 1; }
+  .recipe-form-action { align-items: stretch; flex-direction: column; }
+  .recipe-quantity-control input { max-width: none; }
+  .recipe-form-action > button { width: 100%; }
+}
 
 .pricing-row.total {
   display: flex;
@@ -1747,7 +1789,8 @@
   background: var(--color-surface-white);
   border-radius: var(--radius-lg);
   border: 1.5px solid var(--color-cream-300);
-  padding: 20px 20px 0 20px;
+  /* เว้นขอบล่างให้ปุ่มสถานะหายใจ ไม่ชิด/ชนมุมโค้งของการ์ด */
+  padding: 20px;
   display: flex;
   flex-direction: column;
   box-shadow: var(--shadow-sm);
@@ -1904,6 +1947,16 @@
   border-radius: var(--radius-sm);
 }
 
+/* แยกคำแนะนำชงออกจาก option tags แต่คงไว้ในการ์ดเดียวกับรายการที่สั่ง */
+.barista-preparation-note { display: grid; gap: 5px; min-width: 0; margin-top: 8px; padding: 9px 11px; border: 1px solid var(--color-cream-300); border-radius: var(--radius-sm); background: var(--color-cream-200); color: var(--color-primary-900); }
+.barista-preparation-note > strong,
+.barista-preparation-text > strong { color: var(--color-primary-800); font-size: .76rem; }
+.barista-preparation-note ul { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.barista-preparation-note li { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; font-size: .84rem; line-height: 1.4; }
+.barista-preparation-note li b { flex: 0 0 auto; font-variant-numeric: tabular-nums; font-weight: 600; }
+.barista-preparation-note p { margin: 0; font-size: .84rem; line-height: 1.45; white-space: pre-line; overflow-wrap: anywhere; }
+.barista-preparation-text { display: grid; gap: 2px; padding-top: 6px; border-top: 1px solid var(--color-cream-300); }
+
 /* Items list grows to fill remaining space → pushes buttons to bottom */
 .card-items-formula-list {
   flex: 1;
@@ -1959,7 +2012,7 @@
 
 /* Cancel button bar */
 .card-cancel-bar {
-  padding: 8px 0 16px 0;
+  padding: 8px 0 0;
   border-top: 1px dashed var(--color-cream-300);
   margin-top: 8px;
 }
@@ -2027,6 +2080,29 @@
 }
 
 /* Responsive Breakpoints (NFR-04: >= 768px tablet) */
+@media (min-width: 1025px) and (max-width: 1320px) {
+  :root { --navbar-height: 124px; }
+  .navbar {
+    height: auto;
+    min-height: var(--navbar-height);
+    display: grid;
+    grid-template-columns: minmax(max-content, 1fr) minmax(0, auto);
+    grid-template-areas:
+      "brand info"
+      "tabs tabs";
+    gap: 8px 18px;
+    padding: 10px 22px;
+  }
+  .navbar-brand { grid-area: brand; min-width: max-content; }
+  .brand-title { white-space: nowrap; }
+  .navbar-info { grid-area: info; min-width: 0; justify-content: flex-end; gap: 10px; }
+  .branch-dropdown-container { flex: 0 1 clamp(200px, 24vw, 290px); min-width: 0; }
+  .branch-dropdown-trigger { width: 100%; min-width: 0; }
+  .branch-selected-label { min-width: 0; max-width: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .navbar-tabs { grid-area: tabs; width: 100%; justify-content: stretch; }
+  .nav-tab-btn { flex: 1 1 0; min-width: 0; justify-content: center; white-space: nowrap; padding-inline: clamp(12px, 1.6vw, 22px); }
+}
+
 @media (max-width: 1024px) {
   :root {
     --navbar-height: 124px;
@@ -2572,6 +2648,21 @@
   font-size: 0.875rem;
 }
 
+.owner-data-freshness-note {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-danger-border);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.owner-data-freshness-note svg { flex: 0 0 auto; }
+
 .owner-stale-banner span {
   flex: 1;
 }
@@ -2693,6 +2784,8 @@
   color: var(--color-text-muted);
   font-size: 0.78rem;
 }
+
+.owner-scope-updated.is-stale { color: var(--color-danger); font-weight: 650; }
 
 .owner-metric-help {
   position: relative;
@@ -3175,7 +3268,6 @@
     align-items: stretch;
     gap: 5px;
     padding: 6px;
-    margin-bottom: 16px;
   }
 
   .owner-subtab-btn {
@@ -3557,6 +3649,15 @@
   transition: width 0.6s ease;
 }
 
+.top-product-scale {
+  display: block;
+  margin-top: 3px;
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+}
+
 /* Payment Breakdown */
 .payment-breakdown-list {
   display: flex;
@@ -3624,6 +3725,34 @@
   display: flex;
   flex-direction: column;
   gap: 18px;
+}
+
+.owner-ledger-details { padding: 18px 22px; }
+.owner-ledger-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  cursor: pointer;
+  list-style: none;
+}
+.owner-ledger-summary::-webkit-details-marker { display: none; }
+.owner-ledger-summary:focus-visible { outline: 3px solid rgba(139, 96, 62, 0.32); outline-offset: 4px; border-radius: var(--radius-sm); }
+.owner-ledger-summary .box-title-group { flex-wrap: wrap; }
+.owner-ledger-summary .box-title-group > svg { color: var(--color-accent-hover); }
+.owner-ledger-toggle { display: inline-flex; align-items: center; gap: 7px; color: var(--color-primary-800); font-size: 0.84rem; font-weight: 700; white-space: nowrap; }
+.owner-ledger-details[open] .owner-ledger-toggle svg { transform: rotate(180deg); }
+.owner-ledger-content { margin-top: 18px; }
+.owner-ledger-empty { display: flex; flex-direction: column; align-items: center; gap: 9px; color: var(--color-text-muted); }
+.owner-ledger-empty strong { color: var(--color-primary-800); }
+.owner-ledger-empty .ledger-clear-btn { color: var(--color-primary-800); }
+
+@media (max-width: 620px) {
+  .owner-ledger-details { padding: 16px 14px; }
+  .owner-ledger-summary { align-items: flex-start; }
+  .owner-ledger-summary .box-title-group { gap: 7px; }
+  .owner-ledger-summary .box-title-group h2 { font-size: 0.98rem; }
+  .owner-ledger-toggle { font-size: 0.78rem; }
 }
 
 .table-box-header {
@@ -4053,7 +4182,6 @@
   padding: 8px;
   border-radius: var(--radius-xl);
   border: 1px solid var(--color-cream-300);
-  margin-bottom: 24px;
   box-shadow: 0 1px 3px rgba(53, 42, 35, 0.05);
 }
 
@@ -4523,6 +4651,8 @@
   border-color: var(--color-accent-amber);
   box-shadow: 0 0 0 3px rgba(139, 96, 62, 0.15);
 }
+.preparation-instructions-input { min-height: 96px; line-height: 1.5; resize: vertical; }
+.preparation-instructions-hint { color: var(--color-primary-700); font-size: .8rem; line-height: 1.45; }
 
 /* ==========================================================================
    Custom Select Trigger (หมวดหมู่ & Form Dropdowns)
