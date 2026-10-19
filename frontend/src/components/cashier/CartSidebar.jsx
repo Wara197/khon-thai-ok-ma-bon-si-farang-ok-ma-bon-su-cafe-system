@@ -17,6 +17,9 @@ const PAYMENT_METHODS = [
   { id: "qr", label: "QR Code", icon: QrCode },
 ];
 
+const isWarmBakeryOption = (name = "") =>
+  name.includes("อุ่น") && !name.includes("ไม่ต้องอุ่น");
+
 export default function CartSidebar({
   cartItems,
   onUpdateQuantity,
@@ -101,9 +104,9 @@ export default function CartSidebar({
                     <span className="cart-badge bakery">🥐 เบเกอรี่</span>
                     {item.bakeryOptionName && (
                       <span
-                        className={`cart-badge ${item.bakeryOptionName.includes("อุ่น") ? "bakery-warm" : "bakery-normal"}`}
+                        className={`cart-badge ${isWarmBakeryOption(item.bakeryOptionName) ? "bakery-warm" : "bakery-normal"}`}
                       >
-                        {item.bakeryOptionName.includes("อุ่น")
+                        {isWarmBakeryOption(item.bakeryOptionName)
                           ? " อุ่นร้อน"
                           : " ไม่ต้องอุ่น"}
                       </span>

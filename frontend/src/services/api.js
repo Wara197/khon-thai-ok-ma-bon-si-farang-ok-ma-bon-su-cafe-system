@@ -47,12 +47,25 @@ export async function createOrder(orderData) {
   return data;
 }
 
-export async function fetchQueue(branchId = null) {
+export async function fetchQueue(branchId = null, signal) {
   const query = branchId ? `?branchId=${encodeURIComponent(branchId)}` : "";
-  const res = await fetch(`${API_BASE}/orders/queue${query}`);
+  const res = await fetch(`${API_BASE}/orders/queue${query}`, { signal });
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.error || `Failed to fetch queue: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+// Owner Dashboard ใช้ endpoint สรุปแทนการโหลดออเดอร์เต็มชุดในการ refresh คิวสด
+export async function fetchQueueStats(branchId = null, signal) {
+  const params = new URLSearchParams();
+  if (branchId) params.set("branchId", branchId);
+  const query = params.size ? `?${params.toString()}` : "";
+  const res = await fetch(`${API_BASE}/orders/queue/stats${query}`, { signal });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || `Failed to fetch queue stats: ${res.statusText}`);
   }
   return res.json();
 }
@@ -83,9 +96,11 @@ export async function cancelOrder(orderId) {
   return data;
 }
 
-export async function fetchSalesReport(branchId = null) {
-  const query = branchId ? `?branchId=${encodeURIComponent(branchId)}` : "";
-  const res = await fetch(`${API_BASE}/reports/sales${query}`);
+export async function fetchSalesReport(branchId = null, period = "today", signal) {
+  const params = new URLSearchParams();
+  if (branchId) params.set("branchId", branchId);
+  params.set("period", period);
+  const res = await fetch(`${API_BASE}/reports/sales?${params.toString()}`, { signal });
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.error || `Failed to fetch sales report: ${res.statusText}`);

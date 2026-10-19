@@ -187,6 +187,12 @@ async function getQueue(branchId = null) {
   return { status: 200, body: orders };
 }
 
+/** ดึงสรุปจำนวนคิวแบบเบาสำหรับอัปเดต Owner Dashboard */
+async function getQueueStats(branchId = null) {
+  const stats = await Order.getQueueStats(branchId);
+  return { status: 200, body: stats };
+}
+
 /**
  * เปลี่ยนสถานะออเดอร์
  * อ้างอิง: FR-08 — ลำดับสถานะ: pending → cooking → ready → completed
@@ -238,10 +244,10 @@ async function cancelOrder(orderId) {
  * ดึงรายงานยอดขายและสถิติภาพรวมสำหรับมุมมองเจ้าของร้าน (Owner View)
  * อ้างอิง: FR-05, Use Case 08 (ดูรายงานยอดขาย)
  */
-async function getSalesReport(branchId = null) {
-  const report = await Order.getSalesReport(branchId);
+async function getSalesReport(branchId = null, period = "today") {
+  const report = await Order.getSalesReport(branchId, period);
   return { status: 200, body: report };
 }
 
-module.exports = { createOrder, getQueue, updateStatus, cancelOrder, getSalesReport };
+module.exports = { createOrder, getQueue, getQueueStats, updateStatus, cancelOrder, getSalesReport };
 

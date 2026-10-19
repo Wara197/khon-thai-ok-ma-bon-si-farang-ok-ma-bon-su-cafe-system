@@ -1,66 +1,72 @@
 /* ==========================================================================
-   Coffee Shop POS — Design System & Global Styles
-   Aesthetic: Warm Artisanal Coffee & Modern Minimalist POS
+   Coffee Shop POS — Deep Roast & Oat design tokens
+   North Star: The Contemporary Coffee Atelier
    ========================================================================== */
 
 :root {
-  /* Brand Palette: Warm Artisanal Cafe */
-  --color-primary-900: #1b0f0a; /* Deepest Espresso */
-  --color-primary-800: #2a1810; /* Dark Roast */
-  --color-primary-700: #3e2417; /* Fresh Brew */
-  --color-primary-600: #573322; /* Medium Roast */
-  --color-primary-500: #7b4b32; /* Rich Amber Roast */
+  /* Deep Roast & Oat: warm-tinted neutrals with a restrained clay accent. */
+  --color-primary-900: #352a23;
+  --color-primary-800: #44362d;
+  --color-primary-700: #5b493c;
+  --color-primary-600: #77624f;
+  --color-primary-500: #947a64;
 
-  /* Accent Colors */
-  --color-accent-amber: #d97706; /* Caramel Gold */
-  --color-accent-light: #f59e0b; /* Golden Cream */
-  --color-accent-hover: #b45309; /* Dark Amber */
-  --color-cream-100: #fdfbf7;   /* Cream Milk Background */
-  --color-cream-200: #f5efe6;   /* Warm Surface */
-  --color-cream-300: #e8ded2;   /* Subtle Border */
-  --color-cream-400: #d6c6b4;   /* Divider */
+  --color-accent-amber: #8b603e;
+  --color-accent-light: #b08a69;
+  --color-accent-hover: #765038;
+  --color-accent-soft: #efe4d8;
+  --color-cream-100: #f4f0e9;
+  --color-cream-200: #ebe5dc;
+  --color-cream-300: #dcd3c7;
+  --color-cream-400: #c7b9a8;
 
-  /* Neutral & Dark */
-  --color-text-main: #1f1a17;   /* Charcoal Warm */
-  --color-text-muted: #6b635b;  /* Soft Warm Gray */
-  --color-text-light: #9c9288;  /* Subtle Details */
-  --color-surface-white: #ffffff;
+  --color-text-main: #352f29;
+  --color-text-muted: #665d54;
+  --color-text-light: #756c61;
+  --color-surface-white: #fbf9f5;
+  --color-info-bg: #e8ede8;
+  --color-info-text: #53675c;
+  --color-danger-bg: #f5e6e2;
+  --color-danger-border: #ddb6aa;
+  --color-danger: #a54f3f;
   
   /* Status Colors */
-  --status-pending-bg: #fef3c7;
-  --status-pending-text: #b45309;
-  --status-pending-border: #fcd34d;
+  --status-pending-bg: #f1e7d8;
+  --status-pending-text: #805b38;
+  --status-pending-border: #d8bd98;
   
-  --status-cooking-bg: #ffedd5;
-  --status-cooking-text: #c2410c;
-  --status-cooking-border: #fdba74;
+  --status-cooking-bg: #f2e3d8;
+  --status-cooking-text: #8b583c;
+  --status-cooking-border: #d7b198;
 
-  --status-ready-bg: #d1fae5;
-  --status-ready-text: #047857;
-  --status-ready-border: #6ee7b7;
+  --status-ready-bg: #e2e9e1;
+  --status-ready-text: #4d6652;
+  --status-ready-border: #b3c4b1;
 
-  --status-completed-bg: #f3f4f6;
-  --status-completed-text: #4b5563;
-  --status-completed-border: #e5e7eb;
+  --status-completed-bg: #eae6df;
+  --status-completed-text: #625c54;
+  --status-completed-border: #cec5b9;
 
   /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(42, 24, 16, 0.05);
-  --shadow-md: 0 4px 12px rgba(42, 24, 16, 0.08);
-  --shadow-lg: 0 10px 25px rgba(42, 24, 16, 0.12);
-  --shadow-xl: 0 20px 40px rgba(42, 24, 16, 0.18);
-  --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 2px rgba(53, 42, 35, 0.06);
+  --shadow-md: 0 4px 12px rgba(53, 42, 35, 0.09);
+  --shadow-lg: 0 10px 25px rgba(53, 42, 35, 0.13);
+  --shadow-xl: 0 20px 40px rgba(53, 42, 35, 0.18);
+  --shadow-inner: inset 0 2px 4px rgba(53, 42, 35, 0.05);
 
   /* Radius */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 18px;
-  --radius-xl: 24px;
-  --radius-2xl: 28px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 22px;
   --radius-full: 9999px;
 
   /* Typography */
   --font-family: 'Prompt', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-family-mono: 'Inter', monospace;
+  --font-family-numeric: 'Prompt', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-size-base: clamp(15px, 0.2vw + 14px, 16px);
+  --focus-ring: 0 0 0 3px rgba(139, 96, 62, 0.24);
   
   /* Layout Dimensions */
   --navbar-height: 72px;
@@ -75,10 +81,12 @@
 }
 
 body {
+  font-size: var(--font-size-base);
   font-family: var(--font-family);
   background-color: var(--color-cream-100);
   color: var(--color-text-main);
   line-height: 1.5;
+  font-variant-numeric: tabular-nums lining-nums;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
@@ -91,6 +99,27 @@ button {
   border: none;
   background: none;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--color-accent-amber);
+  outline-offset: 2px;
+  box-shadow: var(--focus-ring);
+}
+
+input,
+select,
+textarea {
+  accent-color: var(--color-accent-amber);
+}
+
+::selection {
+  background: var(--color-primary-700);
+  color: var(--color-surface-white);
 }
 
 button:active {
@@ -119,8 +148,8 @@ input, select {
 }
 
 @keyframes pulseGlow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.4); }
-  50% { box-shadow: 0 0 0 8px rgba(217, 119, 6, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(139, 96, 62, 0.32); }
+  50% { box-shadow: 0 0 0 8px rgba(139, 96, 62, 0); }
 }
 
 /* Custom Scrollbar */

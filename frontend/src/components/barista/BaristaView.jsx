@@ -141,8 +141,9 @@ export default function BaristaView({ selectedBranch = 1, branches = [] }) {
           <div className="station-icon-box">
             <Coffee size={24} />
           </div>
-          <div>
-            <h2 className="station-title">สถานีชงเครื่องดื่ม (Barista Station)</h2>
+          <div className="station-heading-group">
+            <h2 className="station-title">สถานีชงเครื่องดื่ม</h2>
+            <span className="station-title-en">Barista Station</span>
             <div className="station-subtitle">
               <span>อัปเดตอัตโนมัติทุก 3 วินาที</span>
               <span className="dot-separator">•</span>

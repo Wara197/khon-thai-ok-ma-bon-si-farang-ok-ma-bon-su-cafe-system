@@ -38,6 +38,20 @@ router.get("/orders/queue", async (req, res) => {
 });
 
 /**
+ * GET /api/orders/queue/stats
+ * ส่งเฉพาะจำนวนคิวตามสถานะให้ Dashboard refresh ได้ถี่ โดยไม่โหลดรายการออเดอร์
+ */
+router.get("/orders/queue/stats", async (req, res) => {
+  try {
+    const result = await orderController.getQueueStats(req.query.branchId);
+    res.status(result.status).json(result.body);
+  } catch (err) {
+    console.error("GET /api/orders/queue/stats error:", err);
+    res.status(500).json({ error: "เกิดข้อผิดพลาดภายในระบบ" });
+  }
+});
+
+/**
  * PATCH /api/orders/:id/status
  * เปลี่ยนสถานะออเดอร์ (pending → cooking → ready → completed)
  * อ้างอิง: FR-08
@@ -78,7 +92,7 @@ router.delete("/orders/:id", async (req, res) => {
  */
 router.get("/reports/sales", async (req, res) => {
   try {
-    const result = await orderController.getSalesReport(req.query.branchId);
+    const result = await orderController.getSalesReport(req.query.branchId, req.query.period);
     res.status(result.status).json(result.body);
   } catch (err) {
     console.error("GET /api/reports/sales error:", err);
@@ -89,7 +103,7 @@ router.get("/reports/sales", async (req, res) => {
 // Alias: GET /api/orders/report
 router.get("/orders/report", async (req, res) => {
   try {
-    const result = await orderController.getSalesReport(req.query.branchId);
+    const result = await orderController.getSalesReport(req.query.branchId, req.query.period);
     res.status(result.status).json(result.body);
   } catch (err) {
     console.error("GET /api/orders/report error:", err);

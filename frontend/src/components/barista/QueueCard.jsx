@@ -10,6 +10,9 @@ import {
   XCircle,
 } from "lucide-react";
 
+const isWarmBakeryOption = (name = "") =>
+  name.includes("อุ่น") && !name.includes("ไม่ต้องอุ่น");
+
 export default function QueueCard({
   order,
   optionsMap,
@@ -114,12 +117,12 @@ export default function QueueCard({
           {bakeryOptionName && (
             <span
               className={`formula-tag ${
-                bakeryOptionName.includes("อุ่น")
+                isWarmBakeryOption(bakeryOptionName)
                   ? "bakery-warm"
                   : "bakery-normal"
               }`}
             >
-              {bakeryOptionName.includes("อุ่น")
+              {isWarmBakeryOption(bakeryOptionName)
                 ? "🔥 อุ่นร้อน"
                 : "📦 ไม่ต้องอุ่น"}
             </span>

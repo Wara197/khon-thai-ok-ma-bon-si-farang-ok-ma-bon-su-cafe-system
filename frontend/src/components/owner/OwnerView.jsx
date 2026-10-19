@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   TrendingUp,
   DollarSign,
@@ -11,48 +11,194 @@ import {
   CreditCard,
   Banknote,
   Search,
-  Filter,
   Flame,
   Store,
   Coffee,
   ChevronDown,
   Check,
+  X,
+  CalendarDays,
+  ListFilter,
+  Info,
 } from "lucide-react";
-import { fetchSalesReport } from "../../services/api";
+import { fetchSalesReport, fetchQueueStats, fetchQueue } from "../../services/api";
 import MenuManager from "./MenuManager";
+
+function OwnerDropdown({ label, value, options, onChange, className = "", icon: Icon, searchable = false }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const rootRef = useRef(null);
+  const triggerRef = useRef(null);
+  const menuRef = useRef(null);
+  const searchRef = useRef(null);
+  const selectedIndex = options.findIndex((option) => option.value === value);
+  const selectedOption = options[selectedIndex] || options[0];
+  const visibleOptions = searchable
+    ? options.filter((option) => option.label.toLocaleLowerCase("th").includes(query.trim().toLocaleLowerCase("th")))
+    : options;
+  const menuId = `owner-dropdown-${label.replace(/\s+/g, "-")}`;
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const closeOnOutsideClick = (event) => {
+      if (rootRef.current && !rootRef.current.contains(event.target)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    return () => document.removeEventListener("pointerdown", closeOnOutsideClick);
+  }, [open]);
+
+  const focusOption = (index) => {
+    const items = menuRef.current?.querySelectorAll('[role="option"]');
+    if (!items?.length) return;
+    const nextIndex = (index + items.length) % items.length;
+    items[nextIndex].focus();
+  };
+
+  const openMenu = () => {
+    setQuery("");
+    setOpen(true);
+    requestAnimationFrame(() => {
+      if (searchable) searchRef.current?.focus();
+      else focusOption(Math.max(selectedIndex, 0));
+    });
+  };
+
+  const handleTriggerKeyDown = (event) => {
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      openMenu();
+    }
+  };
+
+  const handleMenuKeyDown = (event) => {
+    const items = menuRef.current?.querySelectorAll('[role="option"]');
+    const currentIndex = Array.from(items || []).indexOf(document.activeElement);
+    if (event.target === searchRef.current && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
+      event.preventDefault();
+      focusOption(event.key === "ArrowDown" ? 0 : visibleOptions.length - 1);
+    } else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      focusOption(currentIndex + (event.key === "ArrowDown" ? 1 : -1));
+    } else if (event.target !== searchRef.current && (event.key === "Home" || event.key === "End")) {
+      event.preventDefault();
+      focusOption(event.key === "Home" ? 0 : visibleOptions.length - 1);
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      setOpen(false);
+      triggerRef.current?.focus();
+    } else if (event.key === "Tab") {
+      event.preventDefault();
+      const focusableElements = Array.from(document.querySelectorAll(
+        'a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
+      )).filter((element) => !menuRef.current?.contains(element) && element.offsetParent !== null);
+      const triggerIndex = focusableElements.indexOf(triggerRef.current);
+      const nextElement = focusableElements[triggerIndex + (event.shiftKey ? -1 : 1)];
+      setOpen(false);
+      requestAnimationFrame(() => nextElement?.focus());
+    }
+  };
+
+  const selectOption = (option) => {
+    onChange(option.value);
+    setOpen(false);
+    triggerRef.current?.focus();
+  };
+
+  return (
+    <div className={`owner-dropdown ${className}`} ref={rootRef}>
+      <span className="owner-dropdown-label" id={`${menuId}-label`}>{label}</span>
+      <button
+        ref={triggerRef}
+        type="button"
+        className={`owner-dropdown-trigger ${open ? "open" : ""}`}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-labelledby={`${menuId}-label ${menuId}-value`}
+        aria-controls={open ? menuId : undefined}
+        onClick={() => (open ? setOpen(false) : openMenu())}
+        onKeyDown={handleTriggerKeyDown}
+      >
+        {Icon && <Icon size={16} className="owner-dropdown-icon" aria-hidden="true" />}
+        <span className="owner-dropdown-value" id={`${menuId}-value`}>{selectedOption?.label}</span>
+        <ChevronDown size={16} className={`owner-dropdown-chevron ${open ? "rotate" : ""}`} aria-hidden="true" />
+      </button>
+      {open && (
+        <div
+          className="owner-dropdown-menu"
+          id={menuId}
+          role="presentation"
+          ref={menuRef}
+          onKeyDown={handleMenuKeyDown}
+        >
+          {searchable && (
+            <>
+              {/* ช่องค้นหาช่วยเจ้าของที่ดูแลหลายสาขาเลือกได้โดยไม่ต้องไล่เลื่อนเมนู */}
+            <div className="owner-dropdown-search-wrap">
+              <Search size={15} aria-hidden="true" />
+              <input
+                type="search"
+                className="owner-dropdown-search"
+                ref={searchRef}
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="ค้นหาสาขา"
+                aria-label="ค้นหาสาขา"
+                autoFocus
+              />
+            </div>
+            </>
+          )}
+          <div role="listbox" aria-labelledby={`${menuId}-label`}>
+            {visibleOptions.length ? visibleOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                role="option"
+                aria-selected={option.value === value}
+                className={`owner-dropdown-option ${option.value === value ? "selected" : ""}`}
+                onClick={() => selectOption(option)}
+              >
+                <span>{option.label}</span>
+                {option.value === value && <Check size={16} aria-hidden="true" />}
+              </button>
+            )) : <p className="owner-dropdown-empty">ไม่พบสาขาที่ตรงกัน</p>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function OwnerView({
   selectedBranch = 1,
   branches = [],
-  onSelectBranch,
 }) {
   const [activeOwnerTab, setActiveOwnerTab] = useState("analytics"); // 'analytics' | 'menu'
+  const defaultBranch = selectedBranch ? String(selectedBranch) : "all";
   const [dashboardBranch, setDashboardBranch] = useState(
-    selectedBranch ? String(selectedBranch) : "all"
+    defaultBranch
   );
-  const [branchDropdownOpen, setBranchDropdownOpen] = useState(false);
-  const branchDropdownRef = useRef(null);
 
   const [data, setData] = useState(null);
+  const [liveQueueStats, setLiveQueueStats] = useState(null);
+  const [liveQueueErrorBranch, setLiveQueueErrorBranch] = useState(null);
+  const [liveQueueUpdatedAt, setLiveQueueUpdatedAt] = useState(null);
+  const [waitingOrdersBranch, setWaitingOrdersBranch] = useState(null);
+  const [waitingOrdersState, setWaitingOrdersState] = useState(null);
+  const [waitingOrdersLoading, setWaitingOrdersLoading] = useState(false);
+  const [waitingOrdersError, setWaitingOrdersError] = useState(false);
+  const [dataScope, setDataScope] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
-
-  // Close dropdown on click outside
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (
-        branchDropdownRef.current &&
-        !branchDropdownRef.current.contains(e.target)
-      ) {
-        setBranchDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  const [reportPeriod, setReportPeriod] = useState("today");
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const latestRequestId = useRef(0);
+  const requestController = useRef(null);
+  const dataScopeRef = useRef(null);
+  const queueListController = useRef(null);
 
   // Sync with selectedBranch when parent changes
   useEffect(() => {
@@ -61,30 +207,97 @@ export default function OwnerView({
     }
   }, [selectedBranch]);
 
-  const loadData = async (isManual = false) => {
-    if (isManual) setRefreshing(true);
+  const loadData = useCallback(async (force = false) => {
+    if (requestController.current && !force) return;
+    requestController.current?.abort();
+    const controller = new AbortController();
+    requestController.current = controller;
+    const requestScope = `${dashboardBranch}|${reportPeriod}`;
+    const requestId = ++latestRequestId.current;
+    if (dataScopeRef.current !== requestScope) setLoading(true);
+    setRefreshing(true);
     try {
       const res = await fetchSalesReport(
-        dashboardBranch === "all" ? null : dashboardBranch
+        dashboardBranch === "all" ? null : dashboardBranch,
+        reportPeriod,
+        controller.signal
       );
-      setData(res);
-      setError(null);
+      if (requestId === latestRequestId.current) {
+        setData(res);
+        dataScopeRef.current = requestScope;
+        setDataScope(requestScope);
+        setLastUpdated(new Date());
+        setError(null);
+      }
     } catch (err) {
-      console.error("Failed to load sales report:", err);
-      setError("ไม่สามารถโหลดรายงานยอดขายได้ กรุณาลองใหม่อีกครั้ง");
+      if (!controller.signal.aborted && requestId === latestRequestId.current) {
+        console.error("Failed to load sales report:", err);
+        setError("ไม่สามารถโหลดรายงานยอดขายได้ กรุณาลองใหม่อีกครั้ง");
+      }
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (requestId === latestRequestId.current) {
+        setLoading(false);
+        setRefreshing(false);
+        requestController.current = null;
+      }
     }
-  };
+  }, [dashboardBranch, reportPeriod]);
 
   useEffect(() => {
-    loadData();
-    const interval = setInterval(() => loadData(), 5000);
-    return () => clearInterval(interval);
-  }, [dashboardBranch]);
+    loadData(true);
+    // รายงานย้อนหลังคำนวณหลาย aggregate และรายการสินค้า จึงรีเฟรชแยกจากคิวสดทุก 60 วินาที
+    const interval = setInterval(() => loadData(), 60000);
+    return () => {
+      clearInterval(interval);
+      latestRequestId.current += 1;
+      requestController.current?.abort();
+      requestController.current = null;
+    };
+  }, [loadData]);
 
-  if (loading) {
+  useEffect(() => {
+    if (activeOwnerTab !== "analytics") return undefined;
+    let active = true;
+    let fetching = false;
+    const controller = new AbortController();
+    const branchId = dashboardBranch === "all" ? null : dashboardBranch;
+    const refreshQueueStats = async () => {
+      if (fetching) return;
+      fetching = true;
+      try {
+        const stats = await fetchQueueStats(branchId, controller.signal);
+        if (active) {
+          setLiveQueueStats({ branch: dashboardBranch, stats });
+          setLiveQueueErrorBranch(null);
+          setLiveQueueUpdatedAt(new Date());
+        }
+      } catch (err) {
+        if (active && !controller.signal.aborted) {
+          setLiveQueueErrorBranch(dashboardBranch);
+          console.warn("Failed to refresh live queue stats:", err);
+        }
+      } finally {
+        fetching = false;
+      }
+    };
+
+    // ตัวเลขคิวเปลี่ยนบ่อยกว่ายอดขาย จึงใช้ endpoint สรุปขนาดเล็กและ poll ทุก 5 วินาที
+    refreshQueueStats();
+    const interval = setInterval(refreshQueueStats, 5000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+      controller.abort();
+    };
+  }, [activeOwnerTab, dashboardBranch]);
+
+  useEffect(() => () => queueListController.current?.abort(), [dashboardBranch]);
+
+  const hasCurrentData = data && dataScope === `${dashboardBranch}|${reportPeriod}`;
+  const liveQueueError = liveQueueErrorBranch === dashboardBranch;
+  const waitingOrdersOpen = waitingOrdersBranch === dashboardBranch;
+
+  if (loading && !hasCurrentData) {
     return (
       <div className="owner-loading-container">
         <div className="owner-spinner"></div>
@@ -93,27 +306,33 @@ export default function OwnerView({
     );
   }
 
-  if (error && !data) {
+  if (error && !hasCurrentData) {
     return (
       <div className="owner-error-container">
         <AlertCircle size={48} className="text-red-500" />
         <h3>เกิดข้อผิดพลาด</h3>
         <p>{error}</p>
-        <button className="owner-refresh-btn" onClick={() => loadData(true)}>
+        <button className="owner-refresh-btn" onClick={() => loadData(true)} disabled={refreshing}>
           <RefreshCw size={18} /> ลองใหม่อีกครั้ง
         </button>
       </div>
     );
   }
 
-  const { today, allTime, queueStats, paymentBreakdown, topProducts, recentOrders } = data || {
-    today: { sales: 0, orders: 0 },
-    allTime: { sales: 0, orders: 0, avgOrderValue: 0 },
+  const currentData = hasCurrentData ? data : null;
+  const { periodSales, comparison, completedInPeriod, queueStats: reportQueueStats, paymentBreakdown, topProducts, recentOrders } = currentData || {
+    periodSales: { sales: 0, orders: 0 },
+    comparison: null,
+    completedInPeriod: 0,
     queueStats: { active: 0, completed: 0, cancelled: 0, pending: 0, cooking: 0, ready: 0 },
     paymentBreakdown: [],
     topProducts: [],
     recentOrders: [],
   };
+  // แสดงคิวสดของสาขาปัจจุบันก่อน; ใช้ค่าจากรายงานเป็น fallback ระหว่างรอ poll แรก
+  const queueStats = liveQueueStats?.branch === dashboardBranch
+    ? liveQueueStats.stats
+    : reportQueueStats;
 
   // Filter recent orders
   const filteredOrders = (recentOrders || []).filter((ord) => {
@@ -136,6 +355,51 @@ export default function OwnerView({
   const currentBranchLabel =
     allBranchesList.find((b) => String(b.id) === String(dashboardBranch))?.name ||
     "ทุกสาขา (รวมยอดทั้งหมด)";
+  const periodLabels = { today: "วันนี้", "7d": "7 วันที่ผ่านมา", "30d": "30 วันที่ผ่านมา", all: "ตลอดช่วงข้อมูล" };
+  const periodLabel = periodLabels[reportPeriod];
+  const hasDashboardFilters = dashboardBranch !== defaultBranch || reportPeriod !== "today" || statusFilter !== "all" || searchTerm.trim() !== "";
+  const resetDashboardFilters = () => {
+    setDashboardBranch(defaultBranch);
+    setReportPeriod("today");
+    setStatusFilter("all");
+    setSearchTerm("");
+  };
+  // โหลดรายละเอียดคิวเมื่อเจ้าของกดดูเท่านั้น เพื่อให้การ polling ปกติดึงข้อมูลสรุปขนาดเล็กต่อไป
+  const showWaitingOrders = async (force = false) => {
+    if (waitingOrdersOpen && !force) {
+      setWaitingOrdersBranch(null);
+      return;
+    }
+
+    const branchScope = dashboardBranch;
+    const controller = new AbortController();
+    queueListController.current?.abort();
+    queueListController.current = controller;
+    setWaitingOrdersBranch(branchScope);
+    setWaitingOrdersLoading(true);
+    setWaitingOrdersError(false);
+
+    try {
+      const orders = await fetchQueue(branchScope === "all" ? null : branchScope, controller.signal);
+      if (!controller.signal.aborted) {
+        setWaitingOrdersState({
+          branch: branchScope,
+          orders: orders.filter((order) => order.status === "pending"),
+          updatedAt: new Date(),
+        });
+      }
+    } catch {
+      if (!controller.signal.aborted) setWaitingOrdersError(true);
+    } finally {
+      if (queueListController.current === controller) {
+        setWaitingOrdersLoading(false);
+        queueListController.current = null;
+      }
+    }
+  };
+  const salesChange = comparison?.sales > 0
+    ? Math.round(((periodSales.sales - comparison.sales) / comparison.sales) * 100)
+    : null;
 
   // Calculate max qty for top products bar calculation
   const maxTopQty = topProducts.length > 0 ? Math.max(...topProducts.map((p) => p.total_qty)) : 1;
@@ -181,7 +445,7 @@ export default function OwnerView({
           onClick={() => setActiveOwnerTab("analytics")}
         >
           <TrendingUp size={18} />
-          <span>รายงานยอดขายและสถิติ (Sales Analytics)</span>
+          <span>รายงานยอดขายและสถิติ</span>
         </button>
 
         <button
@@ -189,12 +453,12 @@ export default function OwnerView({
           onClick={() => setActiveOwnerTab("menu")}
         >
           <Coffee size={18} />
-          <span>จัดการเมนูและราคาขาย (Manage Menu & Pricing)</span>
+          <span>จัดการเมนูและราคาขาย</span>
         </button>
       </div>
 
       {activeOwnerTab === "menu" ? (
-        <MenuManager onMenuUpdated={() => loadData()} />
+        <MenuManager onMenuUpdated={() => loadData(true)} />
       ) : (
         <>
           {/* Dashboard Header */}
@@ -205,133 +469,220 @@ export default function OwnerView({
                   <TrendingUp size={24} />
                 </div>
                 <div>
-                  <h1 className="owner-main-title">แดชบอร์ดเจ้าของร้าน (Owner Overview)</h1>
+                  <h1 className="owner-main-title">แดชบอร์ดเจ้าของร้าน</h1>
                   <p className="owner-subtitle">
-                    รายงานยอดขาย สถิติความนิยมของเมนู และประวัติออเดอร์แบบเรียลไทม์ (FR-05, Use Case 08)
+                    ภาพรวมยอดขาย เมนูยอดนิยม และการดำเนินงานหน้าร้าน
                   </p>
                 </div>
               </div>
             </div>
 
             <div className="owner-header-actions">
-              {/* Custom Branch Filter Dropdown (ดีไซน์พรีเมียม สไตล์ร้านกาแฟ คลีน เข้ากับ Navbar) */}
-              <div
-                className="custom-dropdown-container owner-branch-container"
-                ref={branchDropdownRef}
-                title="เลือกสาขาสำหรับรายงาน"
-              >
-                <button
-                  type="button"
-                  className={`owner-branch-trigger ${branchDropdownOpen ? "open" : ""}`}
-                  onClick={() => setBranchDropdownOpen(!branchDropdownOpen)}
-                  aria-expanded={branchDropdownOpen}
-                >
-                  <Store size={16} className="owner-branch-icon" />
-                  <span className="owner-branch-label">{currentBranchLabel}</span>
-                  <ChevronDown
-                    size={14}
-                    className={`dropdown-chevron ${branchDropdownOpen ? "rotate" : ""}`}
-                  />
-                </button>
+              <OwnerDropdown
+                label="สาขา"
+                value={dashboardBranch}
+                onChange={setDashboardBranch}
+                className="owner-branch-container"
+                icon={Store}
+                searchable={allBranchesList.length > 4}
+                options={allBranchesList.map((branch) => ({
+                  value: String(branch.id),
+                  label: branch.name,
+                }))}
+              />
 
-                {branchDropdownOpen && (
-                  <div className="custom-dropdown-menu owner-branch-menu animate-fadeIn">
-                    <div className="dropdown-menu-header-light">กรองข้อมูลตามสาขา</div>
-                    {allBranchesList.map((b) => (
-                      <button
-                        type="button"
-                        key={b.id}
-                        className={`dropdown-menu-item ${
-                          String(dashboardBranch) === String(b.id) ? "active" : ""
-                        }`}
-                        onClick={() => {
-                          setDashboardBranch(String(b.id));
-                          setBranchDropdownOpen(false);
-                        }}
-                      >
-                        <span className="dropdown-item-name">{b.name}</span>
-                        {String(dashboardBranch) === String(b.id) && (
-                          <Check size={15} className="dropdown-item-check" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="live-indicator">
+              <OwnerDropdown
+                label="ช่วงรายงาน"
+                value={reportPeriod}
+                onChange={setReportPeriod}
+                className="owner-period-control"
+                icon={CalendarDays}
+                options={[
+                  { value: "today", label: "วันนี้" },
+                  { value: "7d", label: "7 วันที่ผ่านมา" },
+                  { value: "30d", label: "30 วันที่ผ่านมา" },
+                  { value: "all", label: "ตลอดช่วงข้อมูล" },
+                ]}
+              />
+              <div className={`live-indicator ${error ? "is-stale" : ""}`} title={lastUpdated ? `รายงานอัปเดตล่าสุด ${lastUpdated.toLocaleTimeString("th-TH")}` : "กำลังรอข้อมูลรายงาน"}>
                 <span className="live-dot"></span>
-                <span>อัปเดตอัตโนมัติ (Live)</span>
+                <span>{error ? "รายงานอาจไม่ล่าสุด" : refreshing ? "กำลังอัปเดตรายงาน" : lastUpdated ? `รายงานอัปเดต ${lastUpdated.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}` : "กำลังเชื่อมต่อรายงาน"}</span>
               </div>
               <button
                 className={`owner-refresh-btn ${refreshing ? "rotating" : ""}`}
                 onClick={() => loadData(true)}
+                disabled={refreshing}
                 title="รีเฟรชข้อมูลล่าสุด"
               >
                 <RefreshCw size={16} />
                 <span>รีเฟรช</span>
               </button>
+              {hasDashboardFilters && (
+                <button type="button" className="owner-reset-filters" onClick={resetDashboardFilters}>
+                  <X size={15} /> คืนค่าตัวกรอง
+                </button>
+              )}
             </div>
           </div>
 
-      {/* KPI Stats Cards */}
-      <div className="owner-stats-grid">
-        {/* Card 1: Today Sales */}
-        <div className="owner-stat-card card-gradient-amber">
+          {error && hasCurrentData && (
+            <div className="owner-stale-banner" role="status" aria-live="polite">
+              <AlertCircle size={18} />
+              <span>{error} กำลังแสดงข้อมูลล่าสุดที่โหลดได้{lastUpdated ? ` เมื่อ ${lastUpdated.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}` : ""}</span>
+              <button type="button" onClick={() => loadData(true)} disabled={refreshing}>ลองอีกครั้ง</button>
+            </div>
+          )}
+
+      <div className="owner-report-scope">
+        <div className="owner-report-scope-copy">
+          <span className="owner-scope-label">ขอบเขตรายงาน</span>
+          <strong>{currentBranchLabel}</strong>
+          <span className="owner-scope-divider" aria-hidden="true">·</span>
+          <strong>{periodLabel}</strong>
+          <span className="owner-scope-updated">รายงานอัปเดต {lastUpdated ? lastUpdated.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" }) : "กำลังโหลด"}</span>
+        </div>
+        <details className="owner-metric-help">
+          <summary><Info size={16} aria-hidden="true" /> ความหมายตัวเลข</summary>
+          <div className="owner-metric-help-content">
+            <p><strong>ยอดขายและยอดเฉลี่ย</strong> นับเฉพาะบิลที่ไม่ถูกยกเลิกในช่วงที่เลือก</p>
+            <p><strong>บิลเสร็จสิ้น</strong> นับออเดอร์ที่มีสถานะเสร็จสิ้นในช่วงเดียวกัน</p>
+            <p><strong>คิวปัจจุบัน</strong> แสดงออเดอร์รอทำ กำลังทำ และพร้อมเสิร์ฟ ณ ขณะนี้</p>
+            <p><strong>เทียบช่วงก่อน</strong> เปรียบเทียบยอดขายกับช่วงก่อนหน้าที่มีจำนวนวันเท่ากัน</p>
+            <p><strong>เมนูขายดี</strong> เรียงตามจำนวนชิ้นที่ขายได้ ส่วนช่องทางชำระเงินแสดงยอดและจำนวนบิล</p>
+            <p><strong>ตลอดช่วงข้อมูล</strong> รวมตั้งแต่วันที่มีรายการแรกในระบบ</p>
+          </div>
+        </details>
+      </div>
+
+      <section className="owner-period-section" aria-labelledby="owner-period-heading">
+        <div className="owner-section-intro">
+          <div>
+            <h2 id="owner-period-heading">ผลประกอบการ · {periodLabel}</h2>
+            <p>ตัวเลขยอดขายและจำนวนบิลตามขอบเขตรายงานด้านบน</p>
+          </div>
+        </div>
+        <div className="owner-stats-grid owner-report-stats-grid">
+        <div className="owner-stat-card">
           <div className="stat-card-top">
-            <span className="stat-card-label">ยอดขายวันนี้</span>
-            <div className="stat-icon-wrapper bg-amber-light">
+            <span className="stat-card-label">ยอดขาย · {periodLabel}</span>
+            <div className="stat-icon-wrapper owner-report-stat-icon">
               <DollarSign size={22} />
             </div>
           </div>
-          <div className="stat-card-value">฿{today.sales.toLocaleString()}</div>
-          <div className="stat-card-sub">
-            <span>คำสั่งซื้อสำเร็จวันนี้: <strong>{today.orders}</strong> บิล</span>
+          <div className="stat-card-value"><span className="stat-currency">฿</span><span>{periodSales.sales.toLocaleString()}</span></div>
+          <div className="stat-card-sub owner-period-stat-sub">
+            <span>{periodSales.orders} บิลที่ไม่ถูกยกเลิก</span>
+            {reportPeriod !== "all" && <span className={`owner-trend ${salesChange !== null && salesChange < 0 ? "down" : ""}`}>{salesChange === null ? "ยังไม่มีข้อมูลช่วงก่อนหน้า" : `${salesChange > 0 ? "+" : ""}${salesChange}% จากช่วงก่อน`}</span>}
           </div>
         </div>
 
-        {/* Card 2: Total Revenue */}
-        <div className="owner-stat-card card-gradient-emerald">
+        <div className="owner-stat-card">
           <div className="stat-card-top">
-            <span className="stat-card-label">ยอดขายรวมสะสม</span>
-            <div className="stat-icon-wrapper bg-emerald-light">
+            <span className="stat-card-label">ยอดเฉลี่ยต่อบิล · {periodLabel}</span>
+            <div className="stat-icon-wrapper owner-report-stat-icon">
               <TrendingUp size={22} />
             </div>
           </div>
-          <div className="stat-card-value">฿{allTime.sales.toLocaleString()}</div>
-          <div className="stat-card-sub">
-            <span>เฉลี่ย <strong>฿{allTime.avgOrderValue}</strong> ต่อบิล ({allTime.orders} บิลทั้งหมด)</span>
+          <div className="stat-card-value"><span className="stat-currency">฿</span><span>{(periodSales.orders ? Math.round(periodSales.sales / periodSales.orders) : 0).toLocaleString()}</span></div>
+          <div className="stat-card-sub owner-period-stat-sub">
+            <span>จาก {periodSales.orders} บิลในช่วงที่เลือก</span>
           </div>
         </div>
 
-        {/* Card 3: Active Queue */}
-        <div className="owner-stat-card card-gradient-sky">
+        <div className="owner-stat-card">
           <div className="stat-card-top">
-            <span className="stat-card-label">คิวที่กำลังรอ/ทำ</span>
-            <div className="stat-icon-wrapper bg-sky-light">
-              <Clock size={22} />
-            </div>
-          </div>
-          <div className="stat-card-value">{queueStats.active} <span className="stat-unit">คิว</span></div>
-          <div className="stat-card-sub">
-            <span>รอทำ: <strong>{queueStats.pending}</strong> | กำลังทำ: <strong>{queueStats.cooking}</strong></span>
-          </div>
-        </div>
-
-        {/* Card 4: Completed Orders */}
-        <div className="owner-stat-card card-gradient-purple">
-          <div className="stat-card-top">
-            <span className="stat-card-label">ออเดอร์เสร็จสิ้นสะสม</span>
-            <div className="stat-icon-wrapper bg-purple-light">
+            <span className="stat-card-label">ออเดอร์เสร็จสิ้น · {periodLabel}</span>
+            <div className="stat-icon-wrapper owner-report-stat-icon">
               <CheckCircle2 size={22} />
             </div>
           </div>
-          <div className="stat-card-value">{queueStats.completed} <span className="stat-unit">บิล</span></div>
+          <div className="stat-card-value">{completedInPeriod} <span className="stat-unit">บิล</span></div>
           <div className="stat-card-sub">
-            <span>ยกเลิก: <strong>{queueStats.cancelled}</strong> บิล</span>
+            <span>ออเดอร์สถานะเสร็จสิ้นในช่วงที่เลือก</span>
           </div>
         </div>
       </div>
+      </section>
+
+      <section className="owner-live-queue" aria-labelledby="owner-live-queue-heading">
+        <div className="owner-live-queue-header">
+          <div className="owner-live-queue-title">
+            <div className="owner-queue-icon"><Clock size={19} aria-hidden="true" /></div>
+            <div>
+              <h2 id="owner-live-queue-heading">สถานะคิวปัจจุบัน</h2>
+              <p>ข้อมูลสดของ{currentBranchLabel}</p>
+            </div>
+            <span className={`owner-live-label ${liveQueueError ? "is-stale" : ""}`}>
+              <span className="live-dot" aria-hidden="true"></span>
+              {liveQueueError ? "อัปเดตไม่สำเร็จ" : liveQueueStats?.branch === dashboardBranch ? "สด" : "กำลังเชื่อมต่อ"}
+            </span>
+          </div>
+          {(queueStats.pending > 0 || waitingOrdersOpen) && (
+            <button
+              type="button"
+              className="owner-queue-action"
+              onClick={() => showWaitingOrders()}
+              aria-expanded={waitingOrdersOpen}
+              aria-controls={waitingOrdersOpen ? "owner-waiting-orders" : undefined}
+            >
+              {waitingOrdersOpen ? "ซ่อนรายการคิว" : `ดู ${queueStats.pending} คิวที่รอทำ`}
+              <ChevronDown size={15} className={`owner-queue-action-icon ${waitingOrdersOpen ? "is-open" : ""}`} aria-hidden="true" />
+            </button>
+          )}
+        </div>
+        {/* วางเวลาอัปเดตติดกับตัวเลขคิว เพื่อให้เห็นชัดเมื่อข้อมูลยังไม่สด */}
+        <p className={`owner-queue-freshness ${liveQueueError ? "is-stale" : ""}`} role="status" aria-live="polite">
+          {liveQueueError
+            ? liveQueueUpdatedAt
+              ? `อัปเดตไม่สำเร็จ · แสดงข้อมูลคิวล่าสุด ${liveQueueUpdatedAt.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`
+              : "ยังโหลดคิวสดไม่ได้ · ระบบจะลองอีกครั้งอัตโนมัติ"
+            : liveQueueUpdatedAt
+              ? `คิวอัปเดตล่าสุด ${liveQueueUpdatedAt.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`
+              : "กำลังโหลดสถานะคิว"}
+        </p>
+        <div className="owner-queue-metrics" aria-label="จำนวนคิวตามสถานะ">
+          <div><span>คิวที่ยังไม่เสร็จ</span><strong>{queueStats.active} <small>คิว</small></strong></div>
+          <div><span>รอทำ</span><strong>{queueStats.pending}</strong></div>
+          <div><span>กำลังชง</span><strong>{queueStats.cooking}</strong></div>
+          <div><span>พร้อมเสิร์ฟ</span><strong>{queueStats.ready}</strong></div>
+        </div>
+        {waitingOrdersOpen && (
+          <div className="owner-waiting-orders" id="owner-waiting-orders">
+              <div className="owner-waiting-orders-heading">
+              <h3>ออเดอร์ที่รอเริ่มทำ</h3>
+              {waitingOrdersState?.branch === dashboardBranch && !waitingOrdersLoading && !waitingOrdersError && (
+                  <span>{waitingOrdersState.orders.length} คิว · โหลดเมื่อ {waitingOrdersState.updatedAt.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span>
+              )}
+                {!waitingOrdersLoading && !waitingOrdersError && <button type="button" onClick={() => showWaitingOrders(true)}>โหลดใหม่</button>}
+            </div>
+            {waitingOrdersLoading ? (
+              <p className="owner-queue-list-message" role="status">กำลังโหลดคิวปัจจุบัน…</p>
+            ) : waitingOrdersError ? (
+              <div className="owner-queue-list-error" role="alert">
+                <span>โหลดรายการคิวไม่สำเร็จ</span>
+                <button type="button" onClick={() => showWaitingOrders(true)}>ลองอีกครั้ง</button>
+              </div>
+            ) : waitingOrdersState?.branch === dashboardBranch && waitingOrdersState.orders.length > 0 ? (
+              <ul className="owner-waiting-order-list">
+                {waitingOrdersState.orders.map((order) => (
+                  <li key={order.id}>
+                    <span className="queue-pill">คิว A-{order.queue_no}</span>
+                    <div className="owner-waiting-order-copy">
+                      <strong>{order.order_no}</strong>
+                      <span>{(order.items || []).map((item) => `${item.product_name} ×${item.quantity}`).join(" · ")}</span>
+                    </div>
+                    <span className="owner-waiting-order-time">
+                      {new Date(order.created_at).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })} น.
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="owner-queue-list-message">ตอนนี้ไม่มีออเดอร์ที่รอเริ่มทำ</p>
+            )}
+          </div>
+        )}
+      </section>
 
       {/* Middle Grid: Top Products & Payment Methods */}
       <div className="owner-middle-grid">
@@ -340,9 +691,9 @@ export default function OwnerView({
           <div className="section-box-header">
             <div className="box-title-group">
               <Flame size={20} className="text-amber-500" />
-              <h2>5 อันดับเมนูขายดีที่สุด (Top Selling Products)</h2>
+              <h2>5 เมนูขายดีที่สุด</h2>
             </div>
-            <span className="section-tag">เรียงตามจำนวนแก้ว</span>
+            <span className="section-tag">{periodLabel} · เรียงตามจำนวนที่ขาย</span>
           </div>
 
           <div className="top-products-list">
@@ -380,16 +731,16 @@ export default function OwnerView({
           <div className="section-box-header">
             <div className="box-title-group">
               <CreditCard size={20} className="text-emerald-500" />
-              <h2>สัดส่วนช่องทางชำระเงิน (Payment Methods)</h2>
+              <h2>ช่องทางชำระเงิน</h2>
             </div>
-            <span className="section-tag">ยอดรวมทั้งหมด</span>
+            <span className="section-tag">{periodLabel}</span>
           </div>
 
           <div className="payment-breakdown-list">
             {paymentBreakdown && paymentBreakdown.length > 0 ? (
               paymentBreakdown.map((pm) => {
                 const details = getPaymentDetails(pm.payment_method);
-                const percent = allTime.sales > 0 ? Math.round((pm.total / allTime.sales) * 100) : 0;
+                const percent = periodSales.sales > 0 ? Math.round((pm.total / periodSales.sales) * 100) : 0;
                 return (
                   <div key={pm.payment_method} className={`payment-card ${details.class}`}>
                     <div className="payment-card-left">
@@ -411,12 +762,13 @@ export default function OwnerView({
       </div>
 
       {/* Bottom Section: Recent Orders Table */}
-      <div className="owner-section-box orders-table-box">
+      <div className="owner-section-box orders-table-box" id="owner-orders">
         <div className="table-box-header">
           <div className="box-title-group">
             <ShoppingBag size={20} className="text-blue-500" />
-            <h2>ประวัติรายการสั่งซื้อล่าสุด (Recent Orders Ledger)</h2>
+            <h2>รายการสั่งซื้อล่าสุด · {currentBranchLabel} · {periodLabel}</h2>
             <span className="order-count-chip">{filteredOrders.length} รายการ</span>
+            <span className="ledger-cap-note">แสดงสูงสุด 50 รายการล่าสุด</span>
           </div>
 
           <div className="table-controls">
@@ -432,32 +784,22 @@ export default function OwnerView({
             </div>
 
             {/* Status Filter Tabs */}
-            <div className="status-filter-group">
-              <button
-                className={`filter-btn ${statusFilter === "all" ? "active" : ""}`}
-                onClick={() => setStatusFilter("all")}
-              >
-                ทั้งหมด
-              </button>
-              <button
-                className={`filter-btn ${statusFilter === "pending" ? "active" : ""}`}
-                onClick={() => setStatusFilter("pending")}
-              >
-                รอทำ
-              </button>
-              <button
-                className={`filter-btn ${statusFilter === "cooking" ? "active" : ""}`}
-                onClick={() => setStatusFilter("cooking")}
-              >
-                กำลังทำ
-              </button>
-              <button
-                className={`filter-btn ${statusFilter === "completed" ? "active" : ""}`}
-                onClick={() => setStatusFilter("completed")}
-              >
-                เสร็จสิ้น
-              </button>
-            </div>
+            <OwnerDropdown
+              label="สถานะ"
+              value={statusFilter}
+              onChange={setStatusFilter}
+              className="ledger-status-control"
+              icon={ListFilter}
+              options={[
+                { value: "all", label: "ทุกสถานะ" },
+                { value: "pending", label: "รอทำ" },
+                { value: "cooking", label: "กำลังชง" },
+                { value: "ready", label: "พร้อมเสิร์ฟ" },
+                { value: "completed", label: "เสร็จสิ้น" },
+                { value: "cancelled", label: "ยกเลิก" },
+              ]}
+            />
+            {(searchTerm || statusFilter !== "all") && <button type="button" className="ledger-clear-btn" onClick={() => { setSearchTerm(""); setStatusFilter("all"); }}><X size={14} /> ล้างตัวกรอง</button>}
           </div>
         </div>
 
@@ -467,10 +809,8 @@ export default function OwnerView({
             <thead>
               <tr>
                 <th>เลขคิว / บิล</th>
-                <th>เวลาสั่ง</th>
-                <th>รายการสินค้าและตัวเลือก (Items & Options)</th>
-                <th>วิธีชำระ</th>
-                <th>ยอดเงิน</th>
+                <th>เวลา / รายการสินค้า</th>
+                <th>ชำระเงิน / ยอดเงิน</th>
                 <th>สถานะ</th>
               </tr>
             </thead>
@@ -490,8 +830,8 @@ export default function OwnerView({
                           <span className="order-no-sub">{ord.order_no}</span>
                         </div>
                       </td>
-                      <td className="time-cell">{dateStr} น.</td>
                       <td>
+                        <div className="time-cell">{dateStr} น.</div>
                         <div className="order-items-compact">
                           {(ord.items || []).map((it, i) => {
                             let optText = "";
@@ -503,7 +843,7 @@ export default function OwnerView({
                               if (opts?.toppings?.length) parts.push(`ท็อปปิง: ${opts.toppings.join(", ")}`);
                               if (opts?.note) parts.push(`หมายเหตุ: ${opts.note}`);
                               optText = parts.join(" · ");
-                            } catch (e) {
+                            } catch {
                               optText = "";
                             }
                             return (
@@ -515,20 +855,14 @@ export default function OwnerView({
                           })}
                         </div>
                       </td>
-                      <td>
-                        <div className="pay-method-badge">
-                          {pay.icon}
-                          <span>{pay.label}</span>
-                        </div>
-                      </td>
-                      <td className="amount-cell">฿{ord.total_amount.toLocaleString()}</td>
+                      <td><div className="ledger-payment-cell"><div className="pay-method-badge">{pay.icon}<span>{pay.label}</span></div><span className="amount-cell">฿{ord.total_amount.toLocaleString()}</span></div></td>
                       <td>{getStatusBadge(ord.status)}</td>
                     </tr>
                   );
                 })
               ) : (
                 <tr>
-                  <td colSpan="6" className="text-center py-8 text-gray-400">
+                  <td colSpan="4" className="text-center py-8 text-gray-400">
                     ไม่พบรายการออเดอร์ตามเงื่อนไขที่เลือก
                   </td>
                 </tr>

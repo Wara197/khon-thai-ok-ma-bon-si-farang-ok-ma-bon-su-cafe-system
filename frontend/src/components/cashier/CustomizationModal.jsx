@@ -33,22 +33,13 @@ export default function CustomizationModal({
   const toppingOptions = options.topping || [];
   const bakeryOptions = options.bakery_option || [];
 
-  // Default Drink Type (Hot / Iced / Frappe)
-  // If product is in "ปั่น", default to Frappe, otherwise default to Iced (เย็น)
-  const defaultTemp = () => {
-    if (product?.category_name === "ปั่น") {
-      const frappeOpt = tempOptions.find((t) => t.name.includes("ปั่น"));
-      if (frappeOpt) return frappeOpt.id;
-    }
-    const icedOpt = tempOptions.find((t) => t.name.includes("เย็น"));
-    if (icedOpt) return icedOpt.id;
-    return tempOptions.length > 0 ? tempOptions[0].id : null;
-  };
-
-  const [selectedTempId, setSelectedTempId] = useState(defaultTemp);
-  const [selectedSizeId, setSelectedSizeId] = useState(
-    sizeOptions.length > 0 ? sizeOptions[0].id : null,
-  );
+  const initialTempId = tempOptions[0]?.id ?? 13;
+  const initialSizeId =
+    sizeOptions.find((option) => String(option.name).trim().toUpperCase() === "S")?.id ??
+    sizeOptions[0]?.id ??
+    null;
+  const [selectedTempId, setSelectedTempId] = useState(initialTempId);
+  const [selectedSizeId, setSelectedSizeId] = useState(initialSizeId);
   const [selectedSweetnessId, setSelectedSweetnessId] = useState(
     sweetnessOptions.length > 2
       ? sweetnessOptions[2].id
@@ -66,8 +57,8 @@ export default function CustomizationModal({
 
   // Reset or re-evaluate when product changes
   useEffect(() => {
-    setSelectedTempId(defaultTemp());
-    setSelectedSizeId(sizeOptions.length > 0 ? sizeOptions[0].id : null);
+    setSelectedTempId(initialTempId);
+    setSelectedSizeId(initialSizeId);
     setSelectedSweetnessId(
       sweetnessOptions.length > 2
         ? sweetnessOptions[2].id
@@ -143,9 +134,13 @@ export default function CustomizationModal({
       return;
     }
 
-    // Drinks Validation: Must select size (FR-03)
+    if (!selectedTempId) {
+      setErrorMsg("กรุณาเลือกประเภทเครื่องดื่มก่อนเพิ่มลงตะกร้า");
+      return;
+    }
+
     if (!selectedSizeId) {
-      setErrorMsg("กรุณาเลือกขนาดเครื่องดื่ม (Size)");
+      setErrorMsg("กรุณาเลือกขนาดแก้วก่อนเพิ่มลงตะกร้า");
       return;
     }
 
@@ -218,7 +213,7 @@ export default function CustomizationModal({
           {isBakery ? (
             <div className="bakery-custom-flow">
               {/* บริการอุ่นร้อน */}
-              <div className="custom-section">
+              <div className="custom-section" role="group" aria-label="การบริการเสิร์ฟ">
                 <div className="section-label-group">
                   <label className="section-label">
                     การบริการเสิร์ฟ{" "}
@@ -240,6 +235,7 @@ export default function CustomizationModal({
                     <button
                       type="button"
                       key={opt.id}
+                      aria-pressed={selectedBakeryOptionId === opt.id}
                       className={`option-card-btn ${
                         selectedBakeryOptionId === opt.id ? "selected" : ""
                       }`}
@@ -247,10 +243,14 @@ export default function CustomizationModal({
                     >
                       <div className="opt-main-info">
                         <span className="opt-name">
-                          {opt.name.includes("อุ่น") ? "อุ่นร้อน" : "รับปกติ"}
+                          {opt.name.includes("อุ่น") &&
+                          !opt.name.includes("ไม่ต้องอุ่น")
+                            ? "อุ่นร้อน"
+                            : "รับปกติ"}
                         </span>
                         <span className="opt-desc-sub">
-                          {opt.name.includes("อุ่น")
+                          {opt.name.includes("อุ่น") &&
+                          !opt.name.includes("ไม่ต้องอุ่น")
                             ? "อุ่นเตาอบหอมกรุ่นพร้อมทาน"
                             : "ไม่นำเข้าเตาอบ"}
                         </span>
@@ -279,7 +279,7 @@ export default function CustomizationModal({
                ========================================================================= */
             <div className="drink-custom-flow">
               {/* Section 1: ประเภทเครื่องดื่ม (ร้อน / เย็น / ปั่น) */}
-              <div className="custom-section">
+              <div className="custom-section required-custom-section" role="group" aria-label="ประเภทเครื่องดื่ม จำเป็น">
                 <div className="section-label-group">
                   <label className="section-label">
                     ประเภทเครื่องดื่ม{" "}
@@ -299,10 +299,14 @@ export default function CustomizationModal({
                     <button
                       type="button"
                       key={opt.id}
+                      aria-pressed={selectedTempId === opt.id}
                       className={`option-card-btn ${
                         selectedTempId === opt.id ? "selected" : ""
                       }`}
-                      onClick={() => setSelectedTempId(opt.id)}
+                      onClick={() => {
+                        setSelectedTempId(opt.id);
+                        setErrorMsg("");
+                      }}
                     >
                       <div className="opt-main-info">
                         <span className="opt-name">{opt.name}</span>
@@ -323,7 +327,7 @@ export default function CustomizationModal({
               </div>
 
               {/* Section 2: ขนาด (Size) - บังคับเลือก (FR-03) */}
-              <div className="custom-section">
+              <div className="custom-section required-custom-section" role="group" aria-label="ขนาดแก้ว จำเป็น">
                 <div className="section-label-group">
                   <label className="section-label">
                     ขนาดแก้ว (Size){" "}
@@ -335,6 +339,7 @@ export default function CustomizationModal({
                     <button
                       type="button"
                       key={opt.id}
+                      aria-pressed={selectedSizeId === opt.id}
                       className={`option-card-btn ${
                         selectedSizeId === opt.id ? "selected" : ""
                       }`}
@@ -370,6 +375,7 @@ export default function CustomizationModal({
                       <button
                         type="button"
                         key={opt.id}
+                        aria-pressed={selectedSweetnessId === opt.id}
                         className={`sweetness-btn ${
                           selectedSweetnessId === opt.id ? "selected" : ""
                         }`}
@@ -395,6 +401,7 @@ export default function CustomizationModal({
                         <button
                           type="button"
                           key={opt.id}
+                          aria-pressed={isChecked}
                           className={`topping-item-btn ${
                             isChecked ? "checked" : ""
                           }`}
@@ -423,6 +430,7 @@ export default function CustomizationModal({
               <button
                 type="button"
                 className="qty-btn"
+                aria-label="ลดจำนวน"
                 onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                 disabled={quantity <= 1}
               >
@@ -432,6 +440,7 @@ export default function CustomizationModal({
               <button
                 type="button"
                 className="qty-btn"
+                aria-label="เพิ่มจำนวน"
                 onClick={() => setQuantity((q) => q + 1)}
               >
                 <Plus size={18} />

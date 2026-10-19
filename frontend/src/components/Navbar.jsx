@@ -3,7 +3,6 @@ import {
   Coffee,
   Monitor,
   Layers,
-  Clock,
   TrendingUp,
   Store,
   ChevronDown,
@@ -18,7 +17,6 @@ export default function Navbar({
   selectedBranch = 1,
   onSelectBranch,
 }) {
-  const [timeStr, setTimeStr] = useState("");
   const [branchOpen, setBranchOpen] = useState(false);
   const branchDropdownRef = useRef(null);
 
@@ -45,22 +43,6 @@ export default function Navbar({
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      setTimeStr(
-        now.toLocaleTimeString("th-TH", {
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-        }),
-      );
-    };
-    updateTime();
-    const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -149,11 +131,6 @@ export default function Navbar({
               ))}
             </div>
           )}
-        </div>
-
-        <div className="time-display">
-          <Clock size={16} className="time-icon" />
-          <span>{timeStr}</span>
         </div>
       </div>
     </header>

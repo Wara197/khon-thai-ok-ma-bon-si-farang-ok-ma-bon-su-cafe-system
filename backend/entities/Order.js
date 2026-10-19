@@ -86,6 +86,34 @@ class Order {
   }
 
   /**
+   * ดึงเฉพาะจำนวนคิวตามสถานะสำหรับ Owner Dashboard
+   * ใช้ query แบบ aggregate เพื่อให้ refresh คิวถี่ได้โดยไม่โหลดรายละเอียดออเดอร์ทั้งหมด
+   */
+  static async getQueueStats(branchId = null) {
+    const params = [];
+    let branchFilter = "";
+    if (branchId && branchId !== "all" && branchId !== "undefined") {
+      branchFilter = "AND branch_id = ?";
+      params.push(parseInt(branchId, 10));
+    }
+
+    const rows = await db.all(
+      `SELECT status, COUNT(*) AS count
+       FROM orders
+       WHERE status IN ('pending', 'cooking', 'ready', 'completed', 'cancelled') ${branchFilter}
+       GROUP BY status`,
+      params,
+    );
+    const statusMap = { pending: 0, cooking: 0, ready: 0, completed: 0, cancelled: 0 };
+    for (const row of rows || []) statusMap[row.status] = row.count;
+
+    return {
+      active: statusMap.pending + statusMap.cooking + statusMap.ready,
+      ...statusMap,
+    };
+  }
+
+  /**
    * ดึงออเดอร์ตาม ID
    */
   static async findById(id) {
@@ -105,34 +133,48 @@ class Order {
    * รองรับการดูรวมทุกสาขา หรือแยกตาม branchId
    * อ้างอิง: FR-05, Use Case 08 (ดูรายงานยอดขาย)
    */
-  static async getSalesReport(branchId = null) {
+  static async getSalesReport(branchId = null, period = "today") {
     const branches = await db.all("SELECT * FROM branches ORDER BY id ASC");
     const isFiltered = branchId && branchId !== "all" && branchId !== "undefined";
     const bId = isFiltered ? parseInt(branchId, 10) : null;
+    const reportPeriod = ["today", "7d", "30d", "all"].includes(period) ? period : "today";
 
     const branchFilter = isFiltered ? "AND branch_id = ?" : "";
     const branchParams = isFiltered ? [bId] : [];
+    const periodFilters = {
+      today: "DATE(created_at) = DATE('now', 'localtime')",
+      "7d": "DATE(created_at) >= DATE('now', 'localtime', '-6 days')",
+      "30d": "DATE(created_at) >= DATE('now', 'localtime', '-29 days')",
+      all: "1=1",
+    };
+    const dateFilter = periodFilters[reportPeriod];
+    const dateOrderFilter = reportPeriod === "all" ? "" : `AND ${dateFilter}`;
+    const comparisonFilter = {
+      today: "DATE(created_at) = DATE('now', 'localtime', '-1 day')",
+      "7d": "DATE(created_at) >= DATE('now', 'localtime', '-13 days') AND DATE(created_at) < DATE('now', 'localtime', '-6 days')",
+      "30d": "DATE(created_at) >= DATE('now', 'localtime', '-59 days') AND DATE(created_at) < DATE('now', 'localtime', '-29 days')",
+    }[reportPeriod];
 
-    const todayRow = await db.get(
+    const salesRow = await db.get(
       `
       SELECT 
-        COALESCE(SUM(total_amount), 0) AS today_sales,
-        COUNT(*) AS today_orders
+          COALESCE(SUM(total_amount), 0) AS sales,
+          COUNT(*) AS orders
       FROM orders 
-      WHERE DATE(created_at) = DATE('now', 'localtime') AND status != 'cancelled' ${branchFilter}
+        WHERE ${dateFilter} AND status != 'cancelled' ${branchFilter}
     `,
       branchParams,
     );
 
-    const allTimeRow = await db.get(
-      `
-      SELECT 
-        COALESCE(SUM(total_amount), 0) AS total_sales,
-        COUNT(*) AS total_orders,
-        COALESCE(AVG(total_amount), 0) AS avg_order_value
-      FROM orders
-      WHERE status != 'cancelled' ${branchFilter}
-    `,
+    const comparisonRow = comparisonFilter ? await db.get(
+      `SELECT COALESCE(SUM(total_amount), 0) AS sales
+       FROM orders WHERE ${comparisonFilter} AND status != 'cancelled' ${branchFilter}`,
+      branchParams,
+    ) : null;
+
+    const completedRow = await db.get(
+      `SELECT COUNT(*) AS count FROM orders
+       WHERE ${dateFilter} AND status = 'completed' ${branchFilter}`,
       branchParams,
     );
 
@@ -154,7 +196,7 @@ class Order {
       `
       SELECT payment_method, COUNT(*) AS count, COALESCE(SUM(total_amount), 0) AS total
       FROM orders
-      WHERE status != 'cancelled' ${branchFilter}
+        WHERE status != 'cancelled' ${dateOrderFilter} ${branchFilter}
       GROUP BY payment_method
     `,
       branchParams,
@@ -171,7 +213,7 @@ class Order {
       JOIN products p ON p.id = oi.product_id
       LEFT JOIN categories c ON c.id = p.category_id
       JOIN orders o ON o.id = oi.order_id
-      WHERE o.status != 'cancelled' ${orderBranchFilter}
+        WHERE o.status != 'cancelled' ${reportPeriod === "all" ? "" : `AND ${dateFilter.replaceAll("created_at", "o.created_at")}`} ${orderBranchFilter}
       GROUP BY p.id
       ORDER BY total_qty DESC
       LIMIT 5
@@ -185,38 +227,50 @@ class Order {
              o.total_amount, o.payment_method, o.status, o.created_at
       FROM orders o
       LEFT JOIN branches b ON b.id = o.branch_id
-      WHERE 1=1 ${orderBranchFilter}
+        WHERE 1=1 ${reportPeriod === "all" ? "" : `AND ${dateFilter.replaceAll("created_at", "o.created_at")}`} ${orderBranchFilter}
       ORDER BY o.id DESC
       LIMIT 50
     `,
       branchParams,
     );
 
-    for (const order of recentOrders) {
-      order.items = await db.all(
+    if (recentOrders.length > 0) {
+      const orderIds = recentOrders.map((order) => order.id);
+      const placeholders = orderIds.map(() => "?").join(", ");
+      const recentItems = await db.all(
         `
-        SELECT oi.id, oi.product_id, p.name AS product_name,
+        SELECT oi.order_id, oi.id, oi.product_id, p.name AS product_name,
                oi.quantity, oi.unit_price, oi.subtotal, oi.options_json
         FROM order_items oi
         JOIN products p ON p.id = oi.product_id
-        WHERE oi.order_id = ?
+        WHERE oi.order_id IN (${placeholders})
+        ORDER BY oi.order_id DESC, oi.id ASC
       `,
-        [order.id],
+        orderIds,
       );
+      const itemsByOrderId = new Map();
+
+      for (const item of recentItems) {
+        const orderItems = itemsByOrderId.get(item.order_id) || [];
+        orderItems.push(item);
+        itemsByOrderId.set(item.order_id, orderItems);
+      }
+
+      for (const order of recentOrders) {
+        order.items = itemsByOrderId.get(order.id) || [];
+      }
     }
 
     return {
       selectedBranchId: branchId || "all",
+      period: reportPeriod,
       branches: branches || [],
-      today: {
-        sales: todayRow ? todayRow.today_sales : 0,
-        orders: todayRow ? todayRow.today_orders : 0,
+      periodSales: {
+        sales: salesRow ? salesRow.sales : 0,
+        orders: salesRow ? salesRow.orders : 0,
       },
-      allTime: {
-        sales: allTimeRow ? allTimeRow.total_sales : 0,
-        orders: allTimeRow ? allTimeRow.total_orders : 0,
-        avgOrderValue: allTimeRow ? Math.round(allTimeRow.avg_order_value) : 0,
-      },
+      comparison: comparisonRow ? { sales: comparisonRow.sales } : null,
+      completedInPeriod: completedRow ? completedRow.count : 0,
       queueStats: {
         active: (statusMap.pending || 0) + (statusMap.cooking || 0) + (statusMap.ready || 0),
         completed: statusMap.completed || 0,

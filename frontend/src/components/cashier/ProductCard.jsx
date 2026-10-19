@@ -21,8 +21,22 @@ export default function ProductCard({ product, categoryId, onSelect }) {
     return url;
   };
 
+  const handleCardKeyDown = (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onSelect(product);
+    }
+  };
+
   return (
-    <div className="product-card" onClick={() => onSelect(product)}>
+    <div
+      className="product-card"
+      role="button"
+      tabIndex={0}
+      aria-label={`เลือก ${product.name} ราคา ${Number(product.base_price).toFixed(2)} บาท`}
+      onClick={() => onSelect(product)}
+      onKeyDown={handleCardKeyDown}
+    >
       <div className="product-card-visual">
         {hasImage ? (
           <img
@@ -47,10 +61,10 @@ export default function ProductCard({ product, categoryId, onSelect }) {
             <span className="price-amount">{Number(product.base_price).toFixed(2)}</span>
           </div>
 
-          <button className="add-btn" aria-label={`เลือก ${product.name}`}>
+          <span className="add-btn" aria-hidden="true">
             <Plus size={16} />
             <span>เลือก</span>
-          </button>
+          </span>
         </div>
       </div>
     </div>

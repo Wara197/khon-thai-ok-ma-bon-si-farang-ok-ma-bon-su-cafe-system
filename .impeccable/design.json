@@ -1,0 +1,637 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-19T12:02:04+07:00",
+  "title": "Design System: Coffee Shop POS",
+  "extensions": {
+    "colorMeta": {
+      "espresso-deep": {
+        "displayName": "Deep Espresso",
+        "tonalRamp": [
+          "#352a23",
+          "#44362d",
+          "#5b493c",
+          "#77624f",
+          "#947a64",
+          "#ad9682",
+          "#c9b8a7",
+          "#eee5dc"
+        ],
+        "role": "primary"
+      },
+      "roast-dark": {
+        "displayName": "Dark Roast",
+        "tonalRamp": [
+          "#352a23",
+          "#44362d",
+          "#5b493c",
+          "#77624f",
+          "#947a64",
+          "#ad9682",
+          "#c9b8a7",
+          "#eee5dc"
+        ],
+        "role": "primary"
+      },
+      "roast-mid": {
+        "displayName": "Roast Brown",
+        "tonalRamp": [
+          "#352a23",
+          "#44362d",
+          "#5b493c",
+          "#77624f",
+          "#947a64",
+          "#ad9682",
+          "#c9b8a7",
+          "#eee5dc"
+        ],
+        "role": "primary"
+      },
+      "roast-soft": {
+        "displayName": "Soft Roast",
+        "tonalRamp": [
+          "#352a23",
+          "#44362d",
+          "#5b493c",
+          "#77624f",
+          "#947a64",
+          "#ad9682",
+          "#c9b8a7",
+          "#eee5dc"
+        ],
+        "role": "primary"
+      },
+      "roast-light": {
+        "displayName": "Light Roast",
+        "tonalRamp": [
+          "#352a23",
+          "#44362d",
+          "#5b493c",
+          "#77624f",
+          "#947a64",
+          "#ad9682",
+          "#c9b8a7",
+          "#eee5dc"
+        ],
+        "role": "primary"
+      },
+      "toasted-caramel": {
+        "displayName": "Toasted Caramel",
+        "tonalRamp": [
+          "#765038",
+          "#80583e",
+          "#8b603e",
+          "#a77a58",
+          "#b08a69",
+          "#c7a98e",
+          "#dfcbb7",
+          "#f4eadf"
+        ],
+        "role": "secondary"
+      },
+      "caramel-soft": {
+        "displayName": "Caramel Wash",
+        "tonalRamp": [
+          "#765038",
+          "#80583e",
+          "#8b603e",
+          "#a77a58",
+          "#b08a69",
+          "#c7a98e",
+          "#dfcbb7",
+          "#f4eadf"
+        ],
+        "role": "secondary"
+      },
+      "oat-ground": {
+        "displayName": "Oat Ground",
+        "tonalRamp": [
+          "#51483e",
+          "#6a6055",
+          "#857a6d",
+          "#a19587",
+          "#b5a99a",
+          "#d0c5b8",
+          "#e3dbd1",
+          "#f4f0e9"
+        ],
+        "role": "neutral"
+      },
+      "oat-surface": {
+        "displayName": "Oat Surface",
+        "tonalRamp": [
+          "#51483e",
+          "#6a6055",
+          "#857a6d",
+          "#a19587",
+          "#b5a99a",
+          "#d0c5b8",
+          "#e3dbd1",
+          "#f4f0e9"
+        ],
+        "role": "neutral"
+      },
+      "oat-border": {
+        "displayName": "Oat Border",
+        "tonalRamp": [
+          "#51483e",
+          "#6a6055",
+          "#857a6d",
+          "#a19587",
+          "#b5a99a",
+          "#d0c5b8",
+          "#e3dbd1",
+          "#f4f0e9"
+        ],
+        "role": "neutral"
+      },
+      "oat-divider": {
+        "displayName": "Oat Divider",
+        "tonalRamp": [
+          "#51483e",
+          "#6a6055",
+          "#857a6d",
+          "#a19587",
+          "#b5a99a",
+          "#d0c5b8",
+          "#e3dbd1",
+          "#f4f0e9"
+        ],
+        "role": "neutral"
+      },
+      "warm-ink": {
+        "displayName": "Warm Ink",
+        "tonalRamp": [
+          "#352f29",
+          "#4a423a",
+          "#5f574f",
+          "#766e65",
+          "#897f74",
+          "#aaa197",
+          "#c9c2b9",
+          "#f0ece6"
+        ],
+        "role": "neutral"
+      },
+      "muted-ink": {
+        "displayName": "Muted Ink",
+        "tonalRamp": [
+          "#352f29",
+          "#4a423a",
+          "#5f574f",
+          "#766e65",
+          "#897f74",
+          "#aaa197",
+          "#c9c2b9",
+          "#f0ece6"
+        ],
+        "role": "neutral"
+      },
+      "soft-ink": {
+        "displayName": "Soft Ink",
+        "tonalRamp": [
+          "#352f29",
+          "#49423a",
+          "#5e574f",
+          "#756c61",
+          "#91887e",
+          "#ada69c",
+          "#cbc5bc",
+          "#f0ece6"
+        ],
+        "role": "neutral"
+      },
+      "surface-cream": {
+        "displayName": "Warm Cream Surface",
+        "tonalRamp": [
+          "#40382f",
+          "#5a5148",
+          "#746b62",
+          "#928981",
+          "#aaa39a",
+          "#c7c1b8",
+          "#e0dbd3",
+          "#fbf9f5"
+        ],
+        "role": "neutral"
+      },
+      "botanical-wash": {
+        "displayName": "Botanical Wash",
+        "tonalRamp": [
+          "#37473d",
+          "#425449",
+          "#53675c",
+          "#728277",
+          "#98a49a",
+          "#bac4bb",
+          "#d5ddd6",
+          "#eef2ee"
+        ],
+        "role": "tertiary"
+      },
+      "botanical-ink": {
+        "displayName": "Botanical Ink",
+        "tonalRamp": [
+          "#37473d",
+          "#425449",
+          "#53675c",
+          "#728277",
+          "#98a49a",
+          "#bac4bb",
+          "#d5ddd6",
+          "#eef2ee"
+        ],
+        "role": "tertiary"
+      },
+      "clay-wash": {
+        "displayName": "Soft Clay Wash",
+        "tonalRamp": [
+          "#66382f",
+          "#7f4337",
+          "#a54f3f",
+          "#ba6d5d",
+          "#ce8d7f",
+          "#dfb1a8",
+          "#edd2cc",
+          "#f8ebe8"
+        ],
+        "role": "tertiary"
+      },
+      "clay-ink": {
+        "displayName": "Soft Clay",
+        "tonalRamp": [
+          "#66382f",
+          "#7f4337",
+          "#a54f3f",
+          "#ba6d5d",
+          "#ce8d7f",
+          "#dfb1a8",
+          "#edd2cc",
+          "#f8ebe8"
+        ],
+        "role": "tertiary"
+      },
+      "pending-wash": {
+        "displayName": "Pending Oat",
+        "tonalRamp": [
+          "#61492f",
+          "#715538",
+          "#805b38",
+          "#a17b54",
+          "#bd9872",
+          "#d2b99b",
+          "#e5d5c1",
+          "#f6efe7"
+        ],
+        "role": "tertiary"
+      },
+      "pending-ink": {
+        "displayName": "Pending Roast",
+        "tonalRamp": [
+          "#61492f",
+          "#715538",
+          "#805b38",
+          "#a17b54",
+          "#bd9872",
+          "#d2b99b",
+          "#e5d5c1",
+          "#f6efe7"
+        ],
+        "role": "tertiary"
+      },
+      "preparing-wash": {
+        "displayName": "Preparing Clay Wash",
+        "tonalRamp": [
+          "#614230",
+          "#754f38",
+          "#8b583c",
+          "#a66f51",
+          "#be8d72",
+          "#d1ad98",
+          "#e6cbbc",
+          "#f7eee8"
+        ],
+        "role": "tertiary"
+      },
+      "preparing-ink": {
+        "displayName": "Preparing Clay",
+        "tonalRamp": [
+          "#614230",
+          "#754f38",
+          "#8b583c",
+          "#a66f51",
+          "#be8d72",
+          "#d1ad98",
+          "#e6cbbc",
+          "#f7eee8"
+        ],
+        "role": "tertiary"
+      },
+      "ready-wash": {
+        "displayName": "Ready Sage Wash",
+        "tonalRamp": [
+          "#38483a",
+          "#405444",
+          "#4d6652",
+          "#718674",
+          "#91a38f",
+          "#b3c3b2",
+          "#d3ded2",
+          "#edf2ec"
+        ],
+        "role": "tertiary"
+      },
+      "ready-ink": {
+        "displayName": "Ready Sage",
+        "tonalRamp": [
+          "#38483a",
+          "#405444",
+          "#4d6652",
+          "#718674",
+          "#91a38f",
+          "#b3c3b2",
+          "#d3ded2",
+          "#edf2ec"
+        ],
+        "role": "tertiary"
+      },
+      "complete-wash": {
+        "displayName": "Complete Stone",
+        "tonalRamp": [
+          "#3b3833",
+          "#504b44",
+          "#625c54",
+          "#817a70",
+          "#9c968e",
+          "#b9b3aa",
+          "#d4cfc7",
+          "#f2efeb"
+        ],
+        "role": "tertiary"
+      },
+      "complete-ink": {
+        "displayName": "Complete Slate",
+        "tonalRamp": [
+          "#3b3833",
+          "#504b44",
+          "#625c54",
+          "#817a70",
+          "#9c968e",
+          "#b9b3aa",
+          "#d4cfc7",
+          "#f2efeb"
+        ],
+        "role": "tertiary"
+      },
+      "preparing-edge": {
+        "tonalRamp": [
+          "#614230",
+          "#754f38",
+          "#8b583c",
+          "#a66f51",
+          "#be8d72",
+          "#d1ad98",
+          "#e6cbbc",
+          "#f7eee8"
+        ],
+        "role": "tertiary",
+        "displayName": "Preparing Border"
+      },
+      "clay-edge": {
+        "tonalRamp": [
+          "#66382f",
+          "#7f4337",
+          "#a54f3f",
+          "#ba6d5d",
+          "#ce8d7f",
+          "#dfb1a8",
+          "#edd2cc",
+          "#f8ebe8"
+        ],
+        "role": "tertiary",
+        "displayName": "Clay Border"
+      },
+      "caramel-deep": {
+        "tonalRamp": [
+          "#765038",
+          "#80583e",
+          "#8b603e",
+          "#a77a58",
+          "#b08a69",
+          "#c7a98e",
+          "#dfcbb7",
+          "#f4eadf"
+        ],
+        "role": "secondary",
+        "displayName": "Caramel Deep"
+      },
+      "ready-edge": {
+        "tonalRamp": [
+          "#38483a",
+          "#405444",
+          "#4d6652",
+          "#718674",
+          "#91a38f",
+          "#b3c3b2",
+          "#d3ded2",
+          "#edf2ec"
+        ],
+        "role": "tertiary",
+        "displayName": "Ready Border"
+      },
+      "complete-edge": {
+        "tonalRamp": [
+          "#3b3833",
+          "#504b44",
+          "#625c54",
+          "#817a70",
+          "#9c968e",
+          "#b9b3aa",
+          "#d4cfc7",
+          "#f2efeb"
+        ],
+        "role": "tertiary",
+        "displayName": "Complete Border"
+      },
+      "pending-edge": {
+        "tonalRamp": [
+          "#61492f",
+          "#715538",
+          "#805b38",
+          "#a17b54",
+          "#bd9872",
+          "#d2b99b",
+          "#e5d5c1",
+          "#f6efe7"
+        ],
+        "role": "tertiary",
+        "displayName": "Pending Border"
+      },
+      "caramel-highlight": {
+        "tonalRamp": [
+          "#765038",
+          "#80583e",
+          "#8b603e",
+          "#a77a58",
+          "#b08a69",
+          "#c7a98e",
+          "#dfcbb7",
+          "#f4eadf"
+        ],
+        "role": "secondary",
+        "displayName": "Caramel Highlight"
+      }
+    },
+    "typographyMeta": {
+      "body": {
+        "displayName": "Prompt Body",
+        "purpose": "Thai and Latin interface copy across service and owner workflows."
+      },
+      "numeric": {
+        "displayName": "Inter Numeric",
+        "purpose": "Prices and prominent numeric values."
+      }
+    },
+    "shadows": [
+      {
+        "purpose": "Quiet separation for menu and queue cards.",
+        "name": "shadow-sm",
+        "value": "0 1px 2px rgba(53, 42, 35, 0.06)"
+      },
+      {
+        "purpose": "Raised navigation and hovered cards.",
+        "name": "shadow-md",
+        "value": "0 4px 12px rgba(53, 42, 35, 0.09)"
+      },
+      {
+        "purpose": "Intermediate emphasis.",
+        "name": "shadow-lg",
+        "value": "0 10px 25px rgba(53, 42, 35, 0.13)"
+      },
+      {
+        "purpose": "Foreground modal elevation.",
+        "name": "shadow-xl",
+        "value": "0 20px 40px rgba(53, 42, 35, 0.18)"
+      }
+    ],
+    "motion": [
+      {
+        "purpose": "Common interactive state transition.",
+        "name": "standard-transition",
+        "value": "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
+      },
+      {
+        "purpose": "Global active button feedback.",
+        "name": "press-feedback",
+        "value": "scale(0.98)"
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "wide",
+        "value": "1024px"
+      },
+      {
+        "name": "tablet",
+        "value": "768px"
+      },
+      {
+        "name": "compact",
+        "value": "680px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Checkout Action",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The cashier's prominent action for advancing the current order.",
+      "html": "<button class=\"ds-checkout\">Proceed to checkout</button>",
+      "css": ".ds-checkout { background: linear-gradient(135deg, var(--color-accent-amber) 0%, var(--color-accent-hover) 100%); color: #fff; padding: 14px; border: 0; border-radius: var(--radius-md); font: 600 1.05rem var(--font-family); box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35); transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; } .ds-checkout:hover { box-shadow: 0 6px 18px rgba(217, 119, 6, 0.45); transform: translateY(-1px); } .ds-checkout:focus-visible { outline: 3px solid var(--color-primary-700); outline-offset: 3px; } .ds-checkout:active { transform: scale(0.98); }"
+    },
+    {
+      "name": "Product Card",
+      "kind": "card",
+      "refersTo": "card-product",
+      "description": "Touch-friendly menu item surface with a clear selection affordance.",
+      "html": "<button class=\"ds-product-card\"><span class=\"ds-product-visual\">Coffee</span><span class=\"ds-product-name\">House Latte</span><span class=\"ds-product-price\">฿85</span></button>",
+      "css": ".ds-product-card { display: flex; flex-direction: column; align-items: stretch; gap: 10px; padding: 16px; border: 1px solid var(--color-cream-200); border-radius: var(--radius-lg); background: var(--color-surface-white); color: var(--color-primary-900); text-align: left; box-shadow: var(--shadow-sm); cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); } .ds-product-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); border-color: var(--color-accent-amber); } .ds-product-card:focus-visible { outline: 3px solid var(--color-accent-amber); outline-offset: 3px; } .ds-product-card:active { transform: scale(0.98); } .ds-product-visual { display: grid; place-items: center; height: 120px; border-radius: var(--radius-md); background: linear-gradient(135deg, var(--color-cream-100), var(--color-cream-200)); color: var(--color-primary-600); } .ds-product-name { font: 600 1rem var(--font-family); } .ds-product-price { font: 700 1.15rem var(--font-family-numeric); }"
+    },
+    {
+      "name": "Active Navigation Tab",
+      "kind": "nav",
+      "refersTo": "nav-selected",
+      "description": "Selected workspace or workflow tab in the shared espresso navigation.",
+      "html": "<button class=\"ds-nav-tab\" aria-current=\"page\">Cashier</button>",
+      "css": ".ds-nav-tab { padding: 8px 20px; border: 0; border-radius: var(--radius-full); background: var(--color-accent-amber); color: #fff; font: 600 0.9rem var(--font-family); cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); } .ds-nav-tab:hover { background: var(--color-accent-hover); } .ds-nav-tab:focus-visible { outline: 3px solid #fff; outline-offset: 3px; } .ds-nav-tab:active { transform: scale(0.98); }"
+    },
+    {
+      "name": "Filter Pill",
+      "kind": "chip",
+      "refersTo": "chip-selected",
+      "description": "Compact queue filter with a high-contrast active state.",
+      "html": "<button class=\"ds-filter-pill\" aria-pressed=\"true\">All orders</button>",
+      "css": ".ds-filter-pill { padding: 8px 18px; border: 1px solid var(--color-cream-300); border-radius: var(--radius-full); background: var(--color-surface-white); color: var(--color-text-muted); font: 500 0.9rem var(--font-family); cursor: pointer; transition: all 0.2s ease; } .ds-filter-pill:hover { border-color: var(--color-accent-amber); } .ds-filter-pill[aria-pressed=\"true\"] { border-color: var(--color-primary-800); background: var(--color-primary-800); color: #fff; font-weight: 600; } .ds-filter-pill:focus-visible { outline: 3px solid var(--color-accent-amber); outline-offset: 3px; } .ds-filter-pill:active { transform: scale(0.98); }"
+    },
+    {
+      "name": "Customization Option",
+      "kind": "button",
+      "refersTo": "option-choice",
+      "description": "A clearly selected size or preparation option in the order customizer.",
+      "html": "<button class=\"ds-option\" aria-pressed=\"true\"><span>Medium</span><span>Selected</span></button>",
+      "css": ".ds-option { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border: 1.5px solid var(--color-cream-300); border-radius: var(--radius-md); background: var(--color-cream-100); color: var(--color-text-main); font: 500 0.95rem var(--font-family); cursor: pointer; transition: all 0.15s ease; } .ds-option:hover { border-color: var(--color-accent-amber); } .ds-option[aria-pressed=\"true\"] { border-color: var(--color-accent-amber); background: var(--color-accent-soft); color: var(--color-accent-hover); font-weight: 600; } .ds-option:focus-visible { outline: 3px solid var(--color-accent-amber); outline-offset: 3px; } .ds-option:active { transform: scale(0.98); }"
+    },
+    {
+      "name": "Barista Queue Card",
+      "kind": "card",
+      "refersTo": "card-queue",
+      "description": "Order queue surface; the top edge communicates its current preparation state.",
+      "html": "<article class=\"ds-queue-card ds-pending\"><strong>Order #104</strong><span>2 drinks · Pending</span></article>",
+      "css": ".ds-queue-card { display: flex; flex-direction: column; gap: 10px; padding: 20px 20px 16px; border: 1.5px solid var(--color-cream-300); border-top: 5px solid var(--status-pending-text); border-radius: var(--radius-lg); background: var(--color-surface-white); color: var(--color-text-main); box-shadow: var(--shadow-sm); transition: box-shadow 0.2s ease; } .ds-queue-card:hover { box-shadow: var(--shadow-md); } .ds-queue-card:focus-visible { outline: 3px solid var(--color-accent-amber); outline-offset: 3px; } .ds-queue-card.ds-pending { border-top-color: var(--status-pending-text); } .ds-queue-card.ds-cooking { border-top-color: var(--status-cooking-text); } .ds-queue-card.ds-ready { border-top-color: var(--status-ready-text); }"
+    },
+    {
+      "name": "Foreground Dialog",
+      "kind": "custom",
+      "refersTo": "dialog",
+      "description": "High-priority foreground surface for customization and receipt flows.",
+      "html": "<section class=\"ds-dialog\" role=\"dialog\" aria-modal=\"true\"><h2>Customize drink</h2><p>Choose size and sweetness.</p></section>",
+      "css": ".ds-dialog { width: min(100%, 540px); max-height: 90vh; overflow: auto; padding: 20px 24px; border: 1.5px solid var(--color-cream-300); border-radius: var(--radius-xl); background: var(--color-surface-white); color: var(--color-text-main); box-shadow: var(--shadow-xl); } .ds-dialog h2 { margin: 0 0 8px; color: var(--color-primary-900); font: 700 1.25rem/1.2 var(--font-family); } .ds-dialog:focus-visible { outline: 3px solid var(--color-accent-amber); outline-offset: 3px; }"
+    }
+  ],
+  "narrative": {
+    "rules": [
+      {
+        "body": "Toasted caramel identifies the current action or selection; do not build a screen from competing saturated accents.",
+        "section": "colors",
+        "name": "The One Accent Rule"
+      },
+      {
+        "body": "Reserve the strongest lift for dialogs; working cards use ambient separation only.",
+        "section": "elevation",
+        "name": "The Modal Foreground Rule"
+      }
+    ],
+    "keyCharacteristics": [
+      "Warm oat neutrals and deep, brown-tinted ink.",
+      "Prompt provides one consistent Thai and Latin type voice; tabular numerals keep prices aligned.",
+      "Refined 6–18px surface corners, with pills reserved for compact controls.",
+      "Solid, restrained accents; soft ambient shadows and a higher modal layer."
+    ],
+    "dos": [
+      "Do use the shared semantic tokens across cashier, barista, and owner surfaces.",
+      "Do let spacing, weight, and clear state labels carry the hierarchy.",
+      "Do use tabular numerals for values that should scan or align quickly.",
+      "Do keep touch targets at least 44px where staff act during service.",
+      "Do reserve status colors for their operational meaning."
+    ],
+    "northStar": "The Contemporary Coffee Atelier",
+    "overview": "The interface brings the considered warmth of a contemporary cafe to everyday service software. Deep-roast ink and oat-tinted surfaces form a calm foundation; a restrained toasted-caramel accent marks selection and the next useful action. The feeling is premium and composed, while controls remain familiar and quick to operate.`n`nThe cashier and barista work areas are designed for tablet and large touch displays. Product choices, order totals, queue states, and primary actions stay easy to scan. The owner dashboard uses the same system in a denser desktop layout. Information hierarchy comes from spacing, weight, and surface contrast instead of decorative gradients or generic black-and-white contrast.",
+    "donts": [
+      "Do not use pure black, Inter, or saturated orange/purple gradients.",
+      "Do not let a gradient carry an action state; use a solid token instead.",
+      "Do not use cool gray as the default border or canvas color.",
+      "Do not make every surface a pill or oversized rounded card.",
+      "Do not rely on color alone to communicate order status."
+    ]
+  }
+}

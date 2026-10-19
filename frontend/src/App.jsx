@@ -79,7 +79,6 @@ export default function App() {
         <OwnerView
           selectedBranch={selectedBranch}
           branches={branches}
-          onSelectBranch={setSelectedBranch}
         />
       )}
     </div>
