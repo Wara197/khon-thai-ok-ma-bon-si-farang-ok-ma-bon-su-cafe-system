@@ -31,7 +31,7 @@ TC-01–TC-14 ผ่านในขอบเขตและวิธีทดส
 | TC-06–TC-08 | order เข้าคิวผ่าน polling; รับเฉพาะสถานะถัดไป; ยกเลิก pending/cooking ได้ แต่ ready/completed ไม่ได้ |
 | TC-09–TC-11 | branch filters ทำงาน; owner report ตอบครบ today/7d/30d/all; รายการล่าสุดในข้อมูลทดสอบมี 24 รายการและไม่เกิน 50 |
 | TC-10 | owner เพิ่ม/แก้/ซ่อนเมนูได้; soft delete ซ่อนเมนู; PNG อัปโหลดและอ่านกลับได้; MIME ที่ไม่ใช่ภาพและ signature ไม่ตรงถูกปฏิเสธด้วย 400 |
-| TC-12 | ฉีดความล้มเหลวหลังหัก stock; transaction rollback order header, stock และ movement กลับค่าเดิม |
+| TC-12 | ฉีดความล้มเหลวระหว่าง insert `order_item` และแยกฉีดอีกจุดที่ movement หลังหัก stock; ทั้งสองครั้ง transaction rollback order header, stock และ movement กลับค่าเดิม |
 | TC-13 | role barista อ่าน stock overview ได้; POST/PUT stock และแก้สูตรตอบ 403; response ไม่ส่ง recipe/movement log |
 | TC-14 | ความหวาน 0/25/50/75/100% ใช้น้ำตาล 0/3/6/9/12 กรัม; ยกเลิก pending คืนยอดตาม consumption snapshot ครบ |
 

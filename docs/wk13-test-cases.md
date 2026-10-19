@@ -23,7 +23,7 @@
 | TC-09 | กรองคิว/รายงานตาม branch | queue และ report รับ branchId; queue number แยกตามสาขาและวัน | ผ่าน — API; ตรวจคิวสาขา 1/2 และ report สาขา 1 |
 | TC-10 | เพิ่ม/แก้/ซ่อนเมนูและอัปโหลดรูป | CRUD ทำงาน; delete ทำเป็น `is_active=0`; ตรวจชนิดไฟล์อัปโหลดแยก | ผ่าน — API; CRUD, PNG upload/retrieve และปฏิเสธ MIME/signature ที่ไม่ตรง |
 | TC-11 | เปลี่ยน report period และตรวจ ledger | sales filters มี today/7d/30d/all; recent orders สูงสุด 50; queue summary ใน report ไม่ได้กรอง period | ผ่าน — API; ครบ 4 periods และผลล่าสุด 24 รายการ (ไม่เกิน 50) |
-| TC-12 | จำลอง insert order_item ล้มเหลว | transaction ต้อง rollback order, items และ stock movement ทั้งชุด | ผ่าน — fault injection หลังตัด stock; order, stock และ movement rollback |
+| TC-12 | จำลอง insert order_item ล้มเหลว | transaction ต้อง rollback order, items และ stock movement ทั้งชุด | ผ่าน — fault injection ที่ order_item และ movement หลังตัด stock; rollback ทั้งชุด |
 | TC-13 | เข้าหน้าสต็อกด้วยบัญชี barista | GET inventory แสดงชื่อ/ยอด/หน่วย/threshold; mutation endpoints ต้องตอบ 403 | ผ่าน — UI/API; อ่าน stock ได้และ POST/PUT/สูตรตอบ 403 |
 | TC-14 | สั่งเครื่องดื่มที่ระดับหวาน 25/50/75/100% | stock น้ำตาลลดตาม recipe rule; ระดับ 0% ไม่ลด; cancel คืนตาม consumption snapshot | ผ่าน — API; 0/25/50/75/100% หัก 0/3/6/9/12 กรัม และยกเลิกแล้วคืนครบ |
 
