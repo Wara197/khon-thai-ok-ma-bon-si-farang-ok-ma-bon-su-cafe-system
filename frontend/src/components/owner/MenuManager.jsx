@@ -78,6 +78,7 @@ export default function MenuManager({ onMenuUpdated }) {
     categoryId: 1,
     basePrice: "",
     imageUrl: "",
+    preparationInstructions: "",
   });
   const [formError, setFormError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -158,6 +159,7 @@ export default function MenuManager({ onMenuUpdated }) {
       categoryId: categories.length > 0 ? categories[0].id : 1,
       basePrice: "",
       imageUrl: "",
+      preparationInstructions: "",
     });
     setImageInputMode("upload");
     setPreviewImage("");
@@ -174,6 +176,7 @@ export default function MenuManager({ onMenuUpdated }) {
       categoryId: prod.category_id,
       basePrice: prod.base_price,
       imageUrl: prod.image_url || "",
+      preparationInstructions: prod.preparation_instructions || "",
     });
     setImageInputMode("upload");
     setPreviewImage(prod.image_url || "");
@@ -264,6 +267,7 @@ export default function MenuManager({ onMenuUpdated }) {
           categoryId: Number(formData.categoryId),
           basePrice: price,
           imageUrl: finalImageUrl ? finalImageUrl.trim() : null,
+          preparationInstructions: formData.preparationInstructions.trim(),
         });
         setFeedback({
           type: "success",
@@ -275,6 +279,7 @@ export default function MenuManager({ onMenuUpdated }) {
           categoryId: Number(formData.categoryId),
           basePrice: price,
           imageUrl: finalImageUrl ? finalImageUrl.trim() : null,
+          preparationInstructions: formData.preparationInstructions.trim(),
         });
         setFeedback({
           type: "success",
@@ -654,6 +659,25 @@ export default function MenuManager({ onMenuUpdated }) {
                           required
                         />
                       </div>
+                    </div>
+
+                    {/* วิธีชงเป็นคำแนะนำสำหรับบาริสต้า แยกจากสูตรวัตถุดิบที่ใช้ตัดสต็อก */}
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="product-preparation-instructions">
+                        วิธีชงสำหรับบาริสต้า <span className="form-label-optional">(ไม่บังคับ)</span>
+                      </label>
+                      <textarea
+                        id="product-preparation-instructions"
+                        className="form-input preparation-instructions-input"
+                        rows={3}
+                        maxLength={2000}
+                        placeholder="เช่น 1. สกัดเอสเพรสโซ 1 ช็อต&#10;2. เติมนม 120 มล. แล้วเสิร์ฟร้อน"
+                        value={formData.preparationInstructions}
+                        onChange={(e) => setFormData({ ...formData, preparationInstructions: e.target.value })}
+                      />
+                      <small className="preparation-instructions-hint">
+                        แสดงในรายการคิวของบาริสต้า วิธีชงนี้ไม่เปลี่ยนปริมาณที่ระบบใช้ตัดสต็อก
+                      </small>
                     </div>
 
                     {/* Image Upload / URL Selection Section */}

@@ -99,7 +99,7 @@ router.get("/categories", requireRoles("cashier", "barista", "owner"), async (re
 
 /**
  * POST /api/products
- * เพิ่มเมนูใหม่ (สำหรับเจ้าของร้าน)
+ * เพิ่มเมนูใหม่ (สำหรับเจ้าของร้าน); preparationInstructions เป็นคำแนะนำชง ไม่ใช่สูตรตัดสต็อก
  * อ้างอิง: Use Case 07, FR-04
  */
 router.post("/products", requireRoles("owner"), async (req, res) => {
@@ -114,7 +114,7 @@ router.post("/products", requireRoles("owner"), async (req, res) => {
 
 /**
  * PUT /api/products/:id
- * แก้ไขเมนูและราคา (สำหรับเจ้าของร้าน)
+ * แก้ไขเมนู ราคา และคำแนะนำชง (สำหรับเจ้าของร้าน)
  * อ้างอิง: Use Case 07, FR-04
  */
 router.put("/products/:id", requireRoles("owner"), async (req, res) => {

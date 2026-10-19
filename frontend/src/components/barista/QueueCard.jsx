@@ -109,61 +109,101 @@ export default function QueueCard({
       opts.bakeryOptionName ||
       optionsMap.bakery_option?.[opts.bakeryOptionId] ||
       null;
+    const preparationInstructions = String(opts.preparationInstructions || "").trim();
+    const recipeIngredients = Array.isArray(opts.inventoryConsumptions)
+      ? opts.inventoryConsumptions.filter((ingredient) => ingredient.inventoryName && Number.isFinite(Number(ingredient.quantity)))
+      : [];
+
+    // ใช้ปริมาณวัตถุดิบจาก snapshot สูตรที่ตัดสต็อกจริง; แสดงคำแนะนำข้อความแยกเมื่อเจ้าของกำหนดไว้
+    const preparationNote = (
+      <div className="barista-preparation-note">
+        {recipeIngredients.length > 0 ? (
+          <>
+            <strong>สูตรวัตถุดิบ</strong>
+            <ul>
+              {recipeIngredients.map((ingredient) => (
+                <li key={ingredient.inventoryId}>
+                  <span>{ingredient.inventoryName}</span>
+                  <b>{Number(ingredient.quantity).toLocaleString("th-TH")} {ingredient.unit || ""}</b>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : (
+          <>
+            <strong>สูตรวัตถุดิบ</strong>
+            <p>ไม่มีข้อมูลสูตรใน snapshot ของออเดอร์นี้</p>
+          </>
+        )}
+        {preparationInstructions && (
+          <div className="barista-preparation-text">
+            <strong>วิธีชงเพิ่มเติม</strong>
+            <p>{preparationInstructions}</p>
+          </div>
+        )}
+      </div>
+    );
 
     if (opts.isBakery || bakeryOptionName) {
       return (
-        <div className="formula-tags">
-          <span className="formula-tag bakery-badge">🥐 เบเกอรี่</span>
-          {bakeryOptionName && (
-            <span
-              className={`formula-tag ${
-                isWarmBakeryOption(bakeryOptionName)
-                  ? "bakery-warm"
-                  : "bakery-normal"
-              }`}
-            >
-              {isWarmBakeryOption(bakeryOptionName)
-                ? "🔥 อุ่นร้อน"
-                : "📦 ไม่ต้องอุ่น"}
-            </span>
-          )}
-        </div>
+        <>
+          <div className="formula-tags">
+            <span className="formula-tag bakery-badge">🥐 เบเกอรี่</span>
+            {bakeryOptionName && (
+              <span
+                className={`formula-tag ${
+                  isWarmBakeryOption(bakeryOptionName)
+                    ? "bakery-warm"
+                    : "bakery-normal"
+                }`}
+              >
+                {isWarmBakeryOption(bakeryOptionName)
+                  ? "🔥 อุ่นร้อน"
+                  : "📦 ไม่ต้องอุ่น"}
+              </span>
+            )}
+          </div>
+          {preparationNote}
+        </>
       );
     }
 
     return (
-      <div className="formula-tags">
-        {tempName && (
-          <span
-            className={`formula-tag temp ${
-              tempName.includes("ร้อน")
-                ? "hot"
+      <>
+        <div className="formula-tags">
+          {tempName && (
+            <span
+              className={`formula-tag temp ${
+                tempName.includes("ร้อน")
+                  ? "hot"
+                  : tempName.includes("ปั่น")
+                    ? "frappe"
+                    : "iced"
+              }`}
+            >
+              {tempName.includes("ร้อน")
+                ? "☕ ร้อน"
                 : tempName.includes("ปั่น")
-                  ? "frappe"
-                  : "iced"
-            }`}
-          >
-            {tempName.includes("ร้อน")
-              ? "☕ ร้อน"
-              : tempName.includes("ปั่น")
-                ? "🥤 ปั่น"
-                : "🧊 เย็น"}
-          </span>
-        )}
-        {sizeName && <span className="formula-tag size">{sizeName}</span>}
-        {sweetnessName && (
-          <span className="formula-tag sweetness">
-            {sweetnessName.match(/\d+\s*%/)?.[0]
-              ? `หวาน ${sweetnessName.match(/\d+\s*%/)[0]}`
-              : sweetnessName}
-          </span>
-        )}
-        {toppingNames.map((name, i) => (
-          <span key={i} className="formula-tag topping">
-            +{name}
-          </span>
-        ))}
-      </div>
+                  ? "🥤 ปั่น"
+                  : "🧊 เย็น"}
+            </span>
+          )}
+          {sizeName && <span className="formula-tag size">{sizeName}</span>}
+          {sweetnessName && (
+            <span className="formula-tag sweetness">
+              {sweetnessName.match(/\d+\s*%/)?.[0]
+                ? `หวาน ${sweetnessName.match(/\d+\s*%/)[0]}`
+                : sweetnessName}
+            </span>
+          )}
+          {toppingNames.map((name, i) => (
+            <span key={i} className="formula-tag topping">
+              +{name}
+            </span>
+          ))}
+        </div>
+        {preparationNote}
+      </>
     );
   };
 

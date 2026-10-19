@@ -82,10 +82,17 @@ async function setup() {
       name        TEXT    NOT NULL,
       base_price  INTEGER NOT NULL,
       image_url   TEXT    DEFAULT NULL,
+      preparation_instructions TEXT NOT NULL DEFAULT '',
       is_active   INTEGER NOT NULL DEFAULT 1,
       FOREIGN KEY (category_id) REFERENCES categories(id)
     )
   `);
+
+  // เพิ่มช่องวิธีชงให้ฐานข้อมูลเดิมโดยไม่ลบหรือแก้ข้อมูลสินค้าเดิม
+  const productColumns = await all("PRAGMA table_info(products)");
+  if (!productColumns.some((column) => column.name === "preparation_instructions")) {
+    await run("ALTER TABLE products ADD COLUMN preparation_instructions TEXT NOT NULL DEFAULT ''");
+  }
 
   // 3. product_options — ตัวเลือกขนาด / ความหวาน / ท็อปปิง
   await run(`

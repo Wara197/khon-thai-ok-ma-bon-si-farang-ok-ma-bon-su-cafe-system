@@ -138,6 +138,8 @@ async function createOrder(data) {
       bakeryOptionId: bakeryOptionId || null,
       bakeryOptionName: selectedBakeryOption?.name || null,
       isBakery: !!isBakery,
+      // เก็บข้อความวิธีชงไว้แยกจากสูตรวัตถุดิบ เพื่อให้ออเดอร์เดิมไม่เปลี่ยนเมื่อเจ้าของแก้เมนู
+      preparationInstructions: product.preparation_instructions || "",
     });
 
     resolvedItems.push({
@@ -192,6 +194,8 @@ async function createOrder(data) {
       const savedOptions = JSON.parse(item.optionsJson);
       savedOptions.inventoryConsumptions = [...rulesByIngredient.values()].map((rule) => ({
         inventoryId: rule.inventory_id,
+        inventoryName: rule.name,
+        unit: rule.unit,
         quantity: rule.quantity_per_unit * item.quantity,
       }));
       item.optionsJson = JSON.stringify(savedOptions);

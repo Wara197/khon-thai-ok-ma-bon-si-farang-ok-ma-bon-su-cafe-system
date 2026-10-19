@@ -82,6 +82,50 @@ class Order {
       );
     }
 
+    // เติมชื่อ/หน่วยวัตถุดิบให้ snapshot เก่าที่บันทึกไว้เพียง inventoryId กับ quantity
+    // โดยอ่าน ID และจำนวนจาก snapshot เดิม ห้ามคำนวณสูตรปัจจุบันมาแทนสูตรตอนรับออเดอร์
+    const ingredientIds = new Set();
+    for (const order of orders) {
+      for (const item of order.items) {
+        try {
+          const options = JSON.parse(item.options_json || "{}");
+          for (const ingredient of options.inventoryConsumptions || []) {
+            if (ingredient.inventoryId) ingredientIds.add(Number(ingredient.inventoryId));
+          }
+        } catch (_) {
+          // ข้าม options เก่าที่ไม่ใช่ JSON; คิวส่วนอื่นยังแสดงได้ตามปกติ
+        }
+      }
+    }
+    if (ingredientIds.size) {
+      const ids = [...ingredientIds];
+      const placeholders = ids.map(() => "?").join(",");
+      const ingredientRows = await db.all(
+        `SELECT id, name, unit FROM inventory WHERE id IN (${placeholders})`,
+        ids,
+      );
+      const ingredientById = new Map(ingredientRows.map((ingredient) => [ingredient.id, ingredient]));
+      for (const order of orders) {
+        for (const item of order.items) {
+          try {
+            const options = JSON.parse(item.options_json || "{}");
+            if (!Array.isArray(options.inventoryConsumptions)) continue;
+            options.inventoryConsumptions = options.inventoryConsumptions.map((consumption) => {
+              const ingredient = ingredientById.get(Number(consumption.inventoryId));
+              return ingredient ? {
+                ...consumption,
+                inventoryName: consumption.inventoryName || ingredient.name,
+                unit: consumption.unit || ingredient.unit,
+              } : consumption;
+            });
+            item.options_json = JSON.stringify(options);
+          } catch (_) {
+            // คง options เดิมไว้ หากเป็นข้อมูลเสียหรือรูปแบบที่รุ่นนี้ไม่รู้จัก
+          }
+        }
+      }
+    }
+
     return orders;
   }
 

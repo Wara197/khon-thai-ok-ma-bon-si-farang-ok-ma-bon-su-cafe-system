@@ -10,7 +10,7 @@ class Product {
   static async findAllActive() {
     return db.all(`
       SELECT p.id, p.category_id, c.name AS category_name,
-             p.name, p.base_price, p.image_url
+             p.name, p.base_price, p.image_url, p.preparation_instructions
       FROM products p
       JOIN categories c ON c.id = p.category_id
       WHERE p.is_active = 1
@@ -28,26 +28,26 @@ class Product {
   /**
    * เพิ่มเมนูใหม่ (สำหรับเจ้าของร้าน - Use Case 07, FR-04)
    */
-  static async create({ categoryId, name, basePrice, imageUrl }) {
+  static async create({ categoryId, name, basePrice, imageUrl, preparationInstructions }) {
     const result = await db.run(
-      `INSERT INTO products (category_id, name, base_price, image_url, is_active)
-       VALUES (?, ?, ?, ?, 1)`,
-      [categoryId, name, basePrice, imageUrl || null]
+      `INSERT INTO products (category_id, name, base_price, image_url, preparation_instructions, is_active)
+       VALUES (?, ?, ?, ?, ?, 1)`,
+      [categoryId, name, basePrice, imageUrl || null, preparationInstructions || ""]
     );
-    return { id: result.lastID, categoryId, name, basePrice, imageUrl };
+    return { id: result.lastID, categoryId, name, basePrice, imageUrl, preparationInstructions: preparationInstructions || "" };
   }
 
   /**
    * แก้ไขเมนูและราคา (สำหรับเจ้าของร้าน - Use Case 07, FR-04)
    */
-  static async update(id, { categoryId, name, basePrice, imageUrl }) {
+  static async update(id, { categoryId, name, basePrice, imageUrl, preparationInstructions }) {
     await db.run(
       `UPDATE products 
-       SET category_id = ?, name = ?, base_price = ?, image_url = ?
+       SET category_id = ?, name = ?, base_price = ?, image_url = ?, preparation_instructions = ?
        WHERE id = ?`,
-      [categoryId, name, basePrice, imageUrl, id]
+      [categoryId, name, basePrice, imageUrl, preparationInstructions || "", id]
     );
-    return { id, categoryId, name, basePrice, imageUrl };
+    return { id, categoryId, name, basePrice, imageUrl, preparationInstructions: preparationInstructions || "" };
   }
 
   /**

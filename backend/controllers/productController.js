@@ -7,7 +7,7 @@ const Category = require("../entities/Category");
 
 /**
  * ดึงเมนูทั้งหมดที่เปิดขาย จัดกลุ่มตามหมวดหมู่ พร้อมตัวเลือก
- * ตอบกลับ { categories: [...], options: { size: [...], sweetness: [...], topping: [...] } }
+ * ตอบกลับ categories ที่มี preparation_instructions และ options สำหรับหน้าขาย/เจ้าของร้าน
  */
 async function listProducts() {
   const allCategories = await Category.findAll();
@@ -39,6 +39,7 @@ async function listProducts() {
       name: product.name,
       base_price: product.base_price,
       image_url: product.image_url,
+      preparation_instructions: product.preparation_instructions || "",
     });
   }
 
@@ -70,6 +71,11 @@ async function listProducts() {
  */
 async function createProduct(data) {
   const { categoryId, name, basePrice, imageUrl } = data;
+  const preparationInstructions = typeof data.preparationInstructions === "string" ? data.preparationInstructions.trim() : "";
+
+  if (preparationInstructions.length > 2000) {
+    return { status: 400, body: { error: "วิธีชงต้องมีความยาวไม่เกิน 2,000 ตัวอักษร" } };
+  }
 
   if (!name || typeof name !== "string" || name.trim() === "") {
     return { status: 400, body: { error: "กรุณาระบุชื่อเมนู" } };
@@ -90,6 +96,7 @@ async function createProduct(data) {
     name: name.trim(),
     basePrice: price,
     imageUrl: imageUrl ? imageUrl.trim() : null,
+    preparationInstructions,
   });
 
   return { status: 201, body: created };
@@ -106,6 +113,14 @@ async function updateProduct(id, data) {
   }
 
   const { categoryId, name, basePrice, imageUrl } = data;
+  // คำขอรุ่นเก่าที่ไม่ส่ง field นี้ต้องรักษาวิธีชงเดิมไว้; ส่งข้อความว่างจึงเป็นการล้างโดยตั้งใจ
+  const preparationInstructions = data.preparationInstructions === undefined
+    ? product.preparation_instructions || ""
+    : typeof data.preparationInstructions === "string" ? data.preparationInstructions.trim() : "";
+
+  if (preparationInstructions.length > 2000) {
+    return { status: 400, body: { error: "วิธีชงต้องมีความยาวไม่เกิน 2,000 ตัวอักษร" } };
+  }
 
   if (!name || typeof name !== "string" || name.trim() === "") {
     return { status: 400, body: { error: "กรุณาระบุชื่อเมนู" } };
@@ -126,6 +141,7 @@ async function updateProduct(id, data) {
     name: name.trim(),
     basePrice: price,
     imageUrl: imageUrl ? imageUrl.trim() : null,
+    preparationInstructions,
   });
 
   return { status: 200, body: updated };

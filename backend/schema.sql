@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS products (
   name TEXT NOT NULL,
   base_price INTEGER NOT NULL,
   image_url TEXT DEFAULT NULL,
+  preparation_instructions TEXT NOT NULL DEFAULT '',
   is_active INTEGER NOT NULL DEFAULT 1,
   FOREIGN KEY (category_id) REFERENCES categories(id)
 );
