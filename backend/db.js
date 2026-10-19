@@ -34,12 +34,27 @@ function all(sql, params = []) {
   });
 }
 
+// SQLite ใช้ connection เดียว จึงต้องเก็บชุดคำสั่งของการสร้างออเดอร์ไว้ใน
+// transaction เดียวกัน เพื่อไม่ให้เกิด order header ค้างหรือเลขคิวชนกัน
+async function transaction(work) {
+  await run("BEGIN IMMEDIATE TRANSACTION");
+  try {
+    const result = await work({ run, get, all });
+    await run("COMMIT");
+    return result;
+  } catch (error) {
+    try { await run("ROLLBACK"); } catch (_) { /* transaction may already be closed */ }
+    throw error;
+  }
+}
+
 // ---------------------------------------------------------------------------
-// Setup — สร้างตาราง runtime 6 ตาราง
+// Setup — สร้างตาราง runtime และ migration ที่ปลอดภัยกับฐานข้อมูลเดิม
 // ---------------------------------------------------------------------------
 async function setup() {
   // เปิด WAL mode เพื่อประสิทธิภาพ
   await run("PRAGMA journal_mode=WAL");
+  await run("PRAGMA foreign_keys=ON");
 
   // 0. branches — สาขาของร้าน (จำลอง 3 สาขา)
   await run(`
@@ -90,17 +105,25 @@ async function setup() {
       order_no       TEXT    NOT NULL UNIQUE,
       queue_no       INTEGER NOT NULL,
       total_amount   INTEGER NOT NULL DEFAULT 0,
+      discount_amount INTEGER NOT NULL DEFAULT 0,
       payment_method TEXT    NOT NULL DEFAULT 'cash',
+      payment_status TEXT    NOT NULL DEFAULT 'paid',
       status         TEXT    NOT NULL DEFAULT 'pending',
       created_at     TEXT    NOT NULL DEFAULT (datetime('now','localtime'))
     )
   `);
 
-  // ตรวจสอบและเพิ่มคอลัมน์ branch_id หากตาราง orders เดิมยังไม่มี
+  // Migration สำหรับฐานข้อมูลที่สร้างจากเวอร์ชันก่อนหน้า
   try {
     const cols = await all("PRAGMA table_info(orders)");
     if (cols && !cols.some((c) => c.name === "branch_id")) {
       await run("ALTER TABLE orders ADD COLUMN branch_id INTEGER NOT NULL DEFAULT 1");
+    }
+    if (cols && !cols.some((c) => c.name === "discount_amount")) {
+      await run("ALTER TABLE orders ADD COLUMN discount_amount INTEGER NOT NULL DEFAULT 0");
+    }
+    if (cols && !cols.some((c) => c.name === "payment_status")) {
+      await run("ALTER TABLE orders ADD COLUMN payment_status TEXT NOT NULL DEFAULT 'paid'");
     }
   } catch (err) {
     // ignore
@@ -121,11 +144,139 @@ async function setup() {
     )
   `);
 
+  // 6. inventory + product_recipes — รองรับ FR-09
+  await run(`
+    CREATE TABLE IF NOT EXISTS inventory (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      stock_qty REAL NOT NULL DEFAULT 0,
+      min_threshold REAL NOT NULL DEFAULT 0,
+      unit TEXT NOT NULL
+    )
+  `);
+  await run(`
+    CREATE TABLE IF NOT EXISTS product_recipes (
+      product_id INTEGER NOT NULL,
+      inventory_id INTEGER NOT NULL,
+      quantity_per_unit REAL NOT NULL CHECK(quantity_per_unit > 0),
+      PRIMARY KEY (product_id, inventory_id),
+      FOREIGN KEY (product_id) REFERENCES products(id),
+      FOREIGN KEY (inventory_id) REFERENCES inventory(id)
+    )
+  `);
+  await run(`
+    CREATE TABLE IF NOT EXISTS inventory_movements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      inventory_id INTEGER NOT NULL,
+      change_qty REAL NOT NULL,
+      reason TEXT NOT NULL,
+      reference_type TEXT,
+      reference_id INTEGER,
+      created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+      FOREIGN KEY (inventory_id) REFERENCES inventory(id)
+    )
+  `);
+  await run(`
+    CREATE TABLE IF NOT EXISTS product_recipe_rules (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      product_id INTEGER NOT NULL,
+      inventory_id INTEGER NOT NULL,
+      option_type TEXT NOT NULL DEFAULT 'base',
+      option_id INTEGER NOT NULL DEFAULT 0,
+      quantity_per_unit REAL NOT NULL CHECK(quantity_per_unit > 0),
+      UNIQUE(product_id, inventory_id, option_type, option_id),
+      FOREIGN KEY (product_id) REFERENCES products(id),
+      FOREIGN KEY (inventory_id) REFERENCES inventory(id)
+    )
+  `);
+  await run("CREATE TABLE IF NOT EXISTS schema_migrations (name TEXT PRIMARY KEY, applied_at TEXT NOT NULL DEFAULT (datetime('now','localtime')))");
+
+  // Authentication: user identities and opaque, revocable browser sessions.
+  await run(`CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    password_hash TEXT NOT NULL,
+    password_salt TEXT NOT NULL,
+    role TEXT NOT NULL CHECK(role IN ('owner', 'cashier', 'barista')),
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+  )`);
+  await run(`CREATE TABLE IF NOT EXISTS sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    token_hash TEXT NOT NULL UNIQUE,
+    expires_at TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+  )`);
+
   // Seed mock data (เฉพาะครั้งแรกที่ยังไม่มีข้อมูล)
   await seedBranches();
   await seedMockData();
   await seedSampleOrders();
   await seedTemperatureAndBakeryOptions();
+  await seedInventoryAndRecipes();
+}
+
+async function seedInventoryAndRecipes() {
+  const count = await get("SELECT COUNT(*) AS c FROM inventory");
+  if (!count || count.c === 0) {
+    const seeds = [
+      ["เมล็ดกาแฟ", 3000, 500, "กรัม"],
+      ["นมสด", 12000, 2000, "มล."],
+      ["ผงชา", 1500, 250, "กรัม"],
+      ["ผลไม้/ไซรัป", 5000, 800, "มล."],
+      ["เบเกอรี่", 60, 10, "ชิ้น"],
+    ];
+    for (const seed of seeds) {
+      await run("INSERT INTO inventory (name, stock_qty, min_threshold, unit) VALUES (?, ?, ?, ?)", seed);
+    }
+  }
+
+  // เติมน้ำตาลให้ฐานข้อมูลเดิมด้วย โดยไม่แก้ยอดคงเหลือหากมีรายการนี้อยู่แล้ว
+  await run("INSERT OR IGNORE INTO inventory (name, stock_qty, min_threshold, unit) VALUES (?, ?, ?, ?)", ["น้ำตาล", 5000, 500, "กรัม"]);
+
+  const migrated = await get("SELECT name FROM schema_migrations WHERE name = 'product_recipes_to_rules_v1'");
+  if (!migrated) {
+    await run(`INSERT OR IGNORE INTO product_recipe_rules (product_id, inventory_id, option_type, option_id, quantity_per_unit)
+      SELECT product_id, inventory_id, 'base', 0, quantity_per_unit FROM product_recipes`);
+    const recipeCount = await get("SELECT COUNT(*) AS c FROM product_recipe_rules");
+    if (!recipeCount || recipeCount.c === 0) {
+      const products = await all("SELECT id, category_id FROM products");
+      const inventory = await all("SELECT id, name FROM inventory");
+      const byName = Object.fromEntries(inventory.map((item) => [item.name, item.id]));
+      for (const product of products) {
+        const recipe = product.category_id === 1
+          ? [[byName["เมล็ดกาแฟ"], 18], [byName["นมสด"], 120]]
+          : product.category_id === 2
+            ? [[byName["ผงชา"], 15], [byName["นมสด"], 120]]
+            : product.category_id === 3
+              ? [[byName["ผลไม้/ไซรัป"], 180]]
+              : [[byName["เบเกอรี่"], 1]];
+        for (const [inventoryId, quantity] of recipe) {
+          await run("INSERT OR IGNORE INTO product_recipe_rules (product_id, inventory_id, option_type, option_id, quantity_per_unit) VALUES (?, ?, 'base', 0, ?)", [product.id, inventoryId, quantity]);
+        }
+      }
+    }
+    await run("INSERT INTO schema_migrations (name) VALUES ('product_recipes_to_rules_v1')");
+  }
+
+  // สูตรตั้งต้นเพื่อสาธิต: น้ำตาลต่อแก้ว 0/25/50/75/100% = 0/3/6/9/12 กรัม
+  // INSERT OR IGNORE รักษาสูตรที่เจ้าของร้านปรับเอง และเจ้าของแก้ปริมาณจริงได้ในหน้าสูตร
+  const sugar = await get("SELECT id FROM inventory WHERE name = ?", ["น้ำตาล"]);
+  const sweetOptions = await all("SELECT id, name FROM product_options WHERE option_type = 'sweetness'");
+  const beverageProducts = await all("SELECT id FROM products WHERE is_active = 1 AND category_id != 4");
+  const gramsByPercent = { 0: 0, 25: 3, 50: 6, 75: 9, 100: 12 };
+  if (sugar) {
+    for (const option of sweetOptions) {
+      const percent = Number(option.name.match(/(\\d+)\\s*%/)?.[1]);
+      const grams = gramsByPercent[percent];
+      if (!Number.isFinite(grams) || grams <= 0) continue;
+      for (const product of beverageProducts) {
+        await run("INSERT OR IGNORE INTO product_recipe_rules (product_id, inventory_id, option_type, option_id, quantity_per_unit) VALUES (?, ?, 'sweetness', ?, ?)", [product.id, sugar.id, option.id, grams]);
+      }
+    }
+  }
 }
 
 async function seedTemperatureAndBakeryOptions() {
@@ -289,4 +440,4 @@ async function seedMockData() {
   console.log("✅ Mock data seeded successfully!");
 }
 
-module.exports = { run, get, all, setup };
+module.exports = { run, get, all, transaction, setup };

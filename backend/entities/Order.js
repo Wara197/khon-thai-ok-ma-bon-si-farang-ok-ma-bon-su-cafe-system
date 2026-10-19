@@ -7,23 +7,23 @@ class Order {
    * ดึงเลขคิวล่าสุดของวันนี้ เพื่อให้ Controller ใช้สร้างเลขคิวถัดไป
    * อ้างอิง: FR-04
    */
-  static async getLastQueueNoToday() {
-    const row = await db.get(`
+  static async getLastQueueNoToday(branchId, connection = db) {
+    const row = await connection.get(`
       SELECT MAX(queue_no) AS last_queue
       FROM orders
-      WHERE DATE(created_at) = DATE('now','localtime')
-    `);
+      WHERE DATE(created_at) = DATE('now','localtime') AND branch_id = ?
+    `, [branchId]);
     return row ? row.last_queue || 0 : 0;
   }
 
   /**
    * บันทึกหัวออเดอร์ (รองรับ branchId)
    */
-  static async create({ branchId = 1, orderNo, queueNo, totalAmount, paymentMethod }) {
-    const result = await db.run(
-      `INSERT INTO orders (branch_id, order_no, queue_no, total_amount, payment_method, status)
-       VALUES (?, ?, ?, ?, ?, 'pending')`,
-      [branchId || 1, orderNo, queueNo, totalAmount, paymentMethod],
+  static async create({ branchId = 1, orderNo, queueNo, totalAmount, discountAmount = 0, paymentMethod, paymentStatus = "paid" }, connection = db) {
+    const result = await connection.run(
+      `INSERT INTO orders (branch_id, order_no, queue_no, total_amount, discount_amount, payment_method, payment_status, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')`,
+      [branchId || 1, orderNo, queueNo, totalAmount, discountAmount, paymentMethod, paymentStatus],
     );
     return { id: result.lastID, branchId: branchId || 1, orderNo, queueNo };
   }
@@ -38,8 +38,8 @@ class Order {
     unitPrice,
     subtotal,
     optionsJson,
-  }) {
-    return db.run(
+  }, connection = db) {
+    return connection.run(
       `INSERT INTO order_items (order_id, product_id, quantity, unit_price, subtotal, options_json)
        VALUES (?, ?, ?, ?, ?, ?)`,
       [orderId, productId, quantity, unitPrice, subtotal, optionsJson || "{}"],
@@ -118,6 +118,10 @@ class Order {
    */
   static async findById(id) {
     return db.get("SELECT * FROM orders WHERE id = ?", [id]);
+  }
+
+  static getItems(orderId, connection = db) {
+    return connection.all("SELECT product_id, quantity, options_json FROM order_items WHERE order_id = ?", [orderId]);
   }
 
   /**

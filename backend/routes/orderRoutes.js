@@ -1,9 +1,12 @@
 const express = require("express");
 const orderController = require("../controllers/orderController");
+const { requireRoles } = require("../auth/middleware");
 
 // <<boundary>> OrderRoutes — รับ HTTP request แล้วส่งต่อให้ Controller
 // ไม่มี Business Logic ในชั้นนี้
 const router = express.Router();
+
+// แยกสิทธิ์งานหน้าร้านกับหน้าชง และสงวนรายงาน/สถิติคิวไว้ให้ owner
 
 /**
  * POST /api/orders
@@ -12,13 +15,13 @@ const router = express.Router();
  *
  * Body: { paymentMethod, items: [{ productId, quantity, sizeId, sweetnessId, toppingIds }] }
  */
-router.post("/orders", async (req, res) => {
+router.post("/orders", requireRoles("cashier", "owner"), async (req, res) => {
   try {
     const result = await orderController.createOrder(req.body);
     res.status(result.status).json(result.body);
   } catch (err) {
     console.error("POST /api/orders error:", err);
-    res.status(500).json({ error: "เกิดข้อผิดพลาดภายในระบบ" });
+    res.status(err.status || 500).json({ error: err.message || "เกิดข้อผิดพลาดภายในระบบ" });
   }
 });
 
@@ -27,7 +30,7 @@ router.post("/orders", async (req, res) => {
  * ดึงรายการออเดอร์ที่อยู่ในคิว (pending, cooking) สำหรับหน้าจอบาริสต้า
  * อ้างอิง: FR-07, FR-08
  */
-router.get("/orders/queue", async (req, res) => {
+router.get("/orders/queue", requireRoles("barista", "owner"), async (req, res) => {
   try {
     const result = await orderController.getQueue(req.query.branchId);
     res.status(result.status).json(result.body);
@@ -41,7 +44,7 @@ router.get("/orders/queue", async (req, res) => {
  * GET /api/orders/queue/stats
  * ส่งเฉพาะจำนวนคิวตามสถานะให้ Dashboard refresh ได้ถี่ โดยไม่โหลดรายการออเดอร์
  */
-router.get("/orders/queue/stats", async (req, res) => {
+router.get("/orders/queue/stats", requireRoles("owner"), async (req, res) => {
   try {
     const result = await orderController.getQueueStats(req.query.branchId);
     res.status(result.status).json(result.body);
@@ -58,7 +61,7 @@ router.get("/orders/queue/stats", async (req, res) => {
  *
  * Body: { status: "cooking" | "ready" | "completed" }
  */
-router.patch("/orders/:id/status", async (req, res) => {
+router.patch("/orders/:id/status", requireRoles("barista", "owner"), async (req, res) => {
   try {
     const orderId = parseInt(req.params.id, 10);
     const { status } = req.body;
@@ -74,7 +77,7 @@ router.patch("/orders/:id/status", async (req, res) => {
  * DELETE /api/orders/:id
  * ยกเลิกออเดอร์ (ได้เฉพาะ pending / cooking)
  */
-router.delete("/orders/:id", async (req, res) => {
+router.delete("/orders/:id", requireRoles("cashier", "barista", "owner"), async (req, res) => {
   try {
     const orderId = parseInt(req.params.id, 10);
     const result = await orderController.cancelOrder(orderId);
@@ -90,7 +93,7 @@ router.delete("/orders/:id", async (req, res) => {
  * ดึงรายงานสรุปยอดขาย สถิติตะกร้า และประวัติออเดอร์ สำหรับหน้าจอเจ้าของร้าน (Owner View)
  * อ้างอิง: FR-05, Use Case 08 (ดูรายงานยอดขาย)
  */
-router.get("/reports/sales", async (req, res) => {
+router.get("/reports/sales", requireRoles("owner"), async (req, res) => {
   try {
     const result = await orderController.getSalesReport(req.query.branchId, req.query.period);
     res.status(result.status).json(result.body);
@@ -101,7 +104,7 @@ router.get("/reports/sales", async (req, res) => {
 });
 
 // Alias: GET /api/orders/report
-router.get("/orders/report", async (req, res) => {
+router.get("/orders/report", requireRoles("owner"), async (req, res) => {
   try {
     const result = await orderController.getSalesReport(req.query.branchId, req.query.period);
     res.status(result.status).json(result.body);
@@ -116,7 +119,7 @@ router.get("/orders/report", async (req, res) => {
  * ดึงรายการสาขาทั้งหมด
  */
 const Branch = require("../entities/Branch");
-router.get("/branches", async (req, res) => {
+router.get("/branches", requireRoles("cashier", "barista", "owner"), async (req, res) => {
   try {
     const branches = await Branch.findAll();
     res.status(200).json(branches);

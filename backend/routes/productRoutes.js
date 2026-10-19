@@ -2,16 +2,19 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const productController = require("../controllers/productController");
+const { requireRoles } = require("../auth/middleware");
 
 // <<boundary>> ProductRoutes — รับ HTTP request แล้วส่งต่อให้ Controller
 // ไม่มี Business Logic ในชั้นนี้
 const router = express.Router();
 
+// กำหนดสิทธิ์แยกตามงาน: พนักงานอ่านเมนูได้ แต่ owner เท่านั้นที่แก้ข้อมูลเมนูและอัปโหลดรูป
+
 /**
  * POST /api/upload
  * อัปโหลดรูปภาพสินค้า (รับ base64 data URL) แล้วบันทึกลงโฟลเดอร์ uploads
  */
-router.post("/upload", async (req, res) => {
+router.post("/upload", requireRoles("owner"), async (req, res) => {
   try {
     const data = req.body.data || req.body.image;
     if (!data) {
@@ -62,7 +65,7 @@ router.post("/upload", async (req, res) => {
  * ดึงเมนูทั้งหมดที่เปิดขาย จัดกลุ่มตามหมวดหมู่ พร้อมตัวเลือก
  * อ้างอิง: FR-01, FR-02
  */
-router.get("/products", async (req, res) => {
+router.get("/products", requireRoles("cashier", "barista", "owner"), async (req, res) => {
   try {
     const result = await productController.listProducts();
     res.status(result.status).json(result.body);
@@ -76,7 +79,7 @@ router.get("/products", async (req, res) => {
  * GET /api/categories
  * ดึงรายการหมวดหมู่ทั้งหมด
  */
-router.get("/categories", async (req, res) => {
+router.get("/categories", requireRoles("cashier", "barista", "owner"), async (req, res) => {
   try {
     const result = await productController.listCategories();
     res.status(result.status).json(result.body);
@@ -91,7 +94,7 @@ router.get("/categories", async (req, res) => {
  * เพิ่มเมนูใหม่ (สำหรับเจ้าของร้าน)
  * อ้างอิง: Use Case 07, FR-04
  */
-router.post("/products", async (req, res) => {
+router.post("/products", requireRoles("owner"), async (req, res) => {
   try {
     const result = await productController.createProduct(req.body);
     res.status(result.status).json(result.body);
@@ -106,7 +109,7 @@ router.post("/products", async (req, res) => {
  * แก้ไขเมนูและราคา (สำหรับเจ้าของร้าน)
  * อ้างอิง: Use Case 07, FR-04
  */
-router.put("/products/:id", async (req, res) => {
+router.put("/products/:id", requireRoles("owner"), async (req, res) => {
   try {
     const productId = parseInt(req.params.id, 10);
     const result = await productController.updateProduct(productId, req.body);
@@ -122,7 +125,7 @@ router.put("/products/:id", async (req, res) => {
  * ลบเมนู (สำหรับเจ้าของร้าน)
  * อ้างอิง: Use Case 07, FR-04
  */
-router.delete("/products/:id", async (req, res) => {
+router.delete("/products/:id", requireRoles("owner"), async (req, res) => {
   try {
     const productId = parseInt(req.params.id, 10);
     const result = await productController.deleteProduct(productId);
