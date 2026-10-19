@@ -1,16 +1,16 @@
-# React + Vite
+# Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React 19 + Vite client for the Coffee Shop POS. Screens are under `src/components/` for cashier, barista, and owner; `src/services/api.js` calls the Express API under `/api`.
 
-Currently, two official plugins are available:
+## Commands
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```bash
+npm install
+npm run dev
+npm run build
+npm run lint
+```
 
-## React Compiler
+Vite listens on port 5173 and proxies `/api` and `/uploads` to `http://localhost:3000` (see `vite.config.js`). Run the backend separately with `cd ../backend && npm start`. In single-server mode Express serves the generated `dist/` folder.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+There is no test script in this package manifest. `npm run build` checks the production bundle; `npm run lint` runs Oxlint and may report warnings that should not be treated as runtime test results.

@@ -11,7 +11,7 @@ import {
   Inbox,
 } from 'lucide-react';
 import QueueCard from './QueueCard';
-import { fetchQueue, updateOrderStatus, fetchProducts, cancelOrder } from '../../services/api';
+import { fetchQueue, updateOrderStatus, fetchProducts, cancelOrder, fetchInventory } from '../../services/api';
 
 export default function BaristaView({ selectedBranch = 1, branches = [] }) {
   const [orders, setOrders] = useState([]);
@@ -24,6 +24,29 @@ export default function BaristaView({ selectedBranch = 1, branches = [] }) {
   const [updatingId, setUpdatingId] = useState(null);
   const [cancellingId, setCancellingId] = useState(null);
   const [lastRefreshedAt, setLastRefreshedAt] = useState(new Date());
+  const [showStock, setShowStock] = useState(false);
+  const [stockItems, setStockItems] = useState([]);
+  const [stockLoading, setStockLoading] = useState(false);
+  const [stockError, setStockError] = useState('');
+  const [stockUpdatedAt, setStockUpdatedAt] = useState(null);
+
+  // โหลดภาพรวมแบบอ่านอย่างเดียวเมื่อเปิดแผง และอัปเดตเป็นระยะขณะแสดง
+  const loadStock = async () => {
+    setStockLoading(true);
+    try {
+      const data = await fetchInventory();
+      setStockItems(data.items || []);
+      setStockUpdatedAt(new Date());
+      setStockError('');
+    } catch (err) { setStockError(err.message || 'ไม่สามารถโหลดสต็อกได้'); }
+    finally { setStockLoading(false); }
+  };
+  useEffect(() => {
+    if (!showStock) return undefined;
+    loadStock();
+    const interval = setInterval(loadStock, 30000);
+    return () => clearInterval(interval);
+  }, [showStock]);
 
   // Update branch filter when parent navbar changes selected branch
   useEffect(() => {
@@ -155,6 +178,9 @@ export default function BaristaView({ selectedBranch = 1, branches = [] }) {
         </div>
 
         <div className="barista-header-actions">
+          <button type="button" className="manual-refresh-btn" onClick={() => setShowStock((visible) => !visible)} aria-expanded={showStock}>
+            <Coffee size={16} /> <span>{showStock ? 'ซ่อนสต็อก' : 'เช็คสต็อก'}</span>
+          </button>
           {/* Branch Filter Pills */}
           <div className="barista-branch-pills">
             <button
@@ -184,6 +210,20 @@ export default function BaristaView({ selectedBranch = 1, branches = [] }) {
           </button>
         </div>
       </div>
+
+      {showStock && <section className="barista-stock-panel" aria-label="ภาพรวมวัตถุดิบ">
+        <div className="barista-stock-heading"><div><h3>วัตถุดิบคงเหลือ</h3><p>ดูยอดและแจ้งเตือนวัตถุดิบใกล้หมด · สิทธิ์อ่านอย่างเดียว</p></div>
+          <div className="barista-stock-updated">{stockUpdatedAt ? `อัปเดต ${stockUpdatedAt.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}` : ''}
+            <button type="button" onClick={loadStock} disabled={stockLoading}><RefreshCw size={15} /> รีเฟรช</button></div>
+        </div>
+        {stockError && <p className="barista-stock-error" role="alert">{stockError}</p>}
+        {stockLoading && stockItems.length === 0 ? <p>กำลังโหลดสต็อก…</p> : <div className="barista-stock-grid">
+          {stockItems.map((item) => { const low = Number(item.stock_qty) <= Number(item.min_threshold); return <article key={item.id} className={`barista-stock-item ${low ? 'is-low' : ''}`}>
+            <strong>{item.name}</strong><span className="barista-stock-quantity">{Number(item.stock_qty).toLocaleString('th-TH')} <small>{item.unit}</small></span>
+            <span className="barista-stock-status">{low ? 'ใกล้หมด' : `จุดแจ้งเตือน ${Number(item.min_threshold).toLocaleString('th-TH')} ${item.unit}`}</span>
+          </article>; })}
+        </div>}
+      </section>}
 
       {/* KPI Stats Bar */}
       <div className="barista-stats-grid">

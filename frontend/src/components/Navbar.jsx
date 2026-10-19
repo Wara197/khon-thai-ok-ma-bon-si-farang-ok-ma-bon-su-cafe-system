@@ -7,6 +7,8 @@ import {
   Store,
   ChevronDown,
   Check,
+  LogOut,
+  UserRound,
 } from "lucide-react";
 
 export default function Navbar({
@@ -16,6 +18,8 @@ export default function Navbar({
   branches = [],
   selectedBranch = 1,
   onSelectBranch,
+  user,
+  onLogout,
 }) {
   const [branchOpen, setBranchOpen] = useState(false);
   const branchDropdownRef = useRef(null);
@@ -31,6 +35,7 @@ export default function Navbar({
 
   const currentBranch =
     branchList.find((b) => b.id === Number(selectedBranch)) || branchList[0];
+  const roleLabels = { owner: "เจ้าของร้าน", cashier: "แคชเชียร์", barista: "บาริสต้า" };
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -57,15 +62,15 @@ export default function Navbar({
       </div>
 
       <div className="navbar-tabs">
-        <button
+        {(user?.role === "owner" || user?.role === "cashier") && <button
           className={`nav-tab-btn ${activeTab === "cashier" ? "active" : ""}`}
           onClick={() => setActiveTab("cashier")}
         >
           <Layers size={18} />
           <span>หน้าจอแคชเชียร์ (POS)</span>
-        </button>
+        </button>}
 
-        <button
+        {(user?.role === "owner" || user?.role === "barista") && <button
           className={`nav-tab-btn ${activeTab === "barista" ? "active" : ""}`}
           onClick={() => setActiveTab("barista")}
         >
@@ -74,15 +79,15 @@ export default function Navbar({
           {queueCount > 0 && (
             <span className="queue-badge animate-pulse">{queueCount}</span>
           )}
-        </button>
+        </button>}
 
-        <button
+        {user?.role === "owner" && <button
           className={`nav-tab-btn ${activeTab === "owner" ? "active" : ""}`}
           onClick={() => setActiveTab("owner")}
         >
           <TrendingUp size={18} />
           <span>แดชบอร์ดเจ้าของร้าน (Owner)</span>
-        </button>
+        </button>}
       </div>
 
       <div className="navbar-info">
@@ -131,6 +136,10 @@ export default function Navbar({
               ))}
             </div>
           )}
+        </div>
+        <div className="navbar-account">
+          <span className="navbar-account-identity"><UserRound size={15} /><strong>{user?.username}</strong><small>{roleLabels[user?.role]}</small></span>
+          <button type="button" className="navbar-logout-btn" onClick={onLogout}><LogOut size={15} /><span>ออกจากระบบ</span></button>
         </div>
       </div>
     </header>

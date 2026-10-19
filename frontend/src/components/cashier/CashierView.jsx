@@ -113,7 +113,7 @@ export default function CashierView({
   };
 
   // Handle Checkout (Confirm Order - FR-03, FR-04, FR-05, FR-06)
-  const handleCheckout = async ({ paymentMethod, items }) => {
+  const handleCheckout = async ({ paymentMethod, items, discountAmount }) => {
     setIsSubmitting(true);
     setSubmitError('');
     try {
@@ -121,6 +121,7 @@ export default function CashierView({
         paymentMethod,
         items,
         branchId: selectedBranch,
+        discountAmount,
       });
 
       // Snapshot cart before clearing (for receipt print)

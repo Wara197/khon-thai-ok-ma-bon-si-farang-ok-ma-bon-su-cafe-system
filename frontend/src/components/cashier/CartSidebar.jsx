@@ -29,6 +29,7 @@ export default function CartSidebar({
   isSubmitting,
 }) {
   const [selectedPayment, setSelectedPayment] = useState("cash");
+  const [discountAmount, setDiscountAmount] = useState(0);
 
   const totalQuantity = cartItems.reduce((acc, item) => acc + item.quantity, 0);
   const totalAmount = cartItems.reduce((acc, item) => acc + item.subtotal, 0);
@@ -40,11 +41,13 @@ export default function CartSidebar({
       items: cartItems.map((item) => ({
         productId: item.productId,
         quantity: item.quantity,
+        temperatureId: item.temperatureId,
         sizeId: item.sizeId,
         sweetnessId: item.sweetnessId,
         toppingIds: item.toppingIds || [],
+        bakeryOptionId: item.bakeryOptionId,
       })),
-      totalAmount,
+      discountAmount: Math.min(Math.max(Number(discountAmount) || 0, 0), totalAmount),
     });
   };
 
@@ -205,9 +208,22 @@ export default function CartSidebar({
 
           {/* Pricing Totals */}
           <div className="cart-pricing-breakdown">
+            <div className="pricing-row">
+              <label htmlFor="cart-discount">ส่วนลด (บาท)</label>
+              <input
+                id="cart-discount"
+                type="number"
+                min="0"
+                max={totalAmount}
+                step="1"
+                value={discountAmount}
+                onChange={(event) => setDiscountAmount(event.target.value)}
+                aria-label="ส่วนลดเป็นบาท"
+              />
+            </div>
             <div className="pricing-row total">
               <span>ยอดสุทธิรวม</span>
-              <span className="total-highlight">฿{totalAmount.toFixed(2)}</span>
+              <span className="total-highlight">฿{Math.max(totalAmount - (Number(discountAmount) || 0), 0).toFixed(2)}</span>
             </div>
           </div>
 

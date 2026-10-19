@@ -20,9 +20,12 @@ import {
   CalendarDays,
   ListFilter,
   Info,
+  ShieldCheck,
 } from "lucide-react";
-import { fetchSalesReport, fetchQueueStats, fetchQueue } from "../../services/api";
+import { fetchSalesReport, fetchQueueStats, fetchQueue, fetchInventory } from "../../services/api";
 import MenuManager from "./MenuManager";
+import InventoryManager from "./InventoryManager";
+import UserManager from "./UserManager";
 
 function OwnerDropdown({ label, value, options, onChange, className = "", icon: Icon, searchable = false }) {
   const [open, setOpen] = useState(false);
@@ -172,8 +175,9 @@ function OwnerDropdown({ label, value, options, onChange, className = "", icon: 
 export default function OwnerView({
   selectedBranch = 1,
   branches = [],
+  currentUser,
 }) {
-  const [activeOwnerTab, setActiveOwnerTab] = useState("analytics"); // 'analytics' | 'menu'
+  const [activeOwnerTab, setActiveOwnerTab] = useState("analytics"); // 'analytics' | 'menu' | 'inventory'
   const defaultBranch = selectedBranch ? String(selectedBranch) : "all";
   const [dashboardBranch, setDashboardBranch] = useState(
     defaultBranch
@@ -195,6 +199,7 @@ export default function OwnerView({
   const [searchTerm, setSearchTerm] = useState("");
   const [reportPeriod, setReportPeriod] = useState("today");
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [lowStockItems, setLowStockItems] = useState([]);
   const latestRequestId = useRef(0);
   const requestController = useRef(null);
   const dataScopeRef = useRef(null);
@@ -290,6 +295,22 @@ export default function OwnerView({
       controller.abort();
     };
   }, [activeOwnerTab, dashboardBranch]);
+
+  useEffect(() => {
+    if (activeOwnerTab !== "analytics") return undefined;
+    let active = true;
+    const refreshInventoryAlerts = async () => {
+      try {
+        const result = await fetchInventory();
+        if (active) setLowStockItems(result.lowStock || []);
+      } catch (err) {
+        console.warn("Failed to refresh inventory alerts:", err);
+      }
+    };
+    refreshInventoryAlerts();
+    const interval = setInterval(refreshInventoryAlerts, 60000);
+    return () => { active = false; clearInterval(interval); };
+  }, [activeOwnerTab]);
 
   useEffect(() => () => queueListController.current?.abort(), [dashboardBranch]);
 
@@ -455,10 +476,28 @@ export default function OwnerView({
           <Coffee size={18} />
           <span>จัดการเมนูและราคาขาย</span>
         </button>
+        <button
+          className={`owner-subtab-btn ${activeOwnerTab === "inventory" ? "active" : ""}`}
+          onClick={() => setActiveOwnerTab("inventory")}
+        >
+          <AlertCircle size={18} />
+          <span>คลังวัตถุดิบ</span>
+        </button>
+        <button
+          className={`owner-subtab-btn ${activeOwnerTab === "staff" ? "active" : ""}`}
+          onClick={() => setActiveOwnerTab("staff")}
+        >
+          <ShieldCheck size={18} />
+          <span>บัญชีพนักงาน</span>
+        </button>
       </div>
 
       {activeOwnerTab === "menu" ? (
         <MenuManager onMenuUpdated={() => loadData(true)} />
+      ) : activeOwnerTab === "inventory" ? (
+        <InventoryManager />
+      ) : activeOwnerTab === "staff" ? (
+        <UserManager currentUser={currentUser} />
       ) : (
         <>
           {/* Dashboard Header */}
@@ -524,6 +563,12 @@ export default function OwnerView({
               )}
             </div>
           </div>
+
+          {lowStockItems.length > 0 && <button type="button" className="owner-low-stock-banner" onClick={() => setActiveOwnerTab("inventory")}>
+            <AlertCircle size={19} aria-hidden="true" />
+            <span><strong>{lowStockItems.length} วัตถุดิบต่ำกว่าเกณฑ์</strong> · {lowStockItems.map((item) => item.name).join(", ")}</span>
+            <span className="owner-low-stock-action">จัดการคลัง →</span>
+          </button>}
 
           {error && hasCurrentData && (
             <div className="owner-stale-banner" role="status" aria-live="polite">
