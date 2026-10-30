@@ -1,3 +1,4 @@
+/** Dashboard owner: แสดง KPI ยอดขาย สินค้าขายดี การชำระ และคิวสาขา */
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   TrendingUp,
@@ -27,6 +28,7 @@ import MenuManager from "./MenuManager";
 import InventoryManager from "./InventoryManager";
 import UserManager from "./UserManager";
 
+/** ตัวกรองแบบ dropdown ที่ใช้ร่วมกันกับช่วงรายงานและสาขา */
 function OwnerDropdown({ label, value, options, onChange, className = "", icon: Icon, searchable = false }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -172,6 +174,7 @@ function OwnerDropdown({ label, value, options, onChange, className = "", icon: 
   );
 }
 
+/** โหลดรายงานตามตัวกรองและแยก polling ของคิวออกจากข้อมูลยอดขาย */
 export default function OwnerView({
   selectedBranch = 1,
   branches = [],
@@ -310,7 +313,7 @@ export default function OwnerView({
     let active = true;
     const refreshInventoryAlerts = async () => {
       try {
-        const result = await fetchInventory();
+        const result = await fetchInventory(selectedBranch);
         if (active) {
           setLowStockItems(result.lowStock || []);
           setInventoryUpdatedAt(new Date());
@@ -324,7 +327,7 @@ export default function OwnerView({
     refreshInventoryAlerts();
     const interval = setInterval(refreshInventoryAlerts, 60000);
     return () => { active = false; clearInterval(interval); };
-  }, [activeOwnerTab]);
+  }, [activeOwnerTab, selectedBranch]);
 
   useEffect(() => () => queueListController.current?.abort(), [dashboardBranch]);
 
@@ -520,9 +523,9 @@ export default function OwnerView({
       {activeOwnerTab === "menu" ? (
         <MenuManager onMenuUpdated={() => loadData(true)} />
       ) : activeOwnerTab === "inventory" ? (
-        <InventoryManager />
+        <InventoryManager selectedBranch={selectedBranch} branches={branches} />
       ) : activeOwnerTab === "staff" ? (
-        <UserManager currentUser={currentUser} />
+        <UserManager currentUser={currentUser} branches={branches} />
       ) : (
         <>
           {/* Dashboard Header */}

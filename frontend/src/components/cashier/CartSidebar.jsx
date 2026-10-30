@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+/** แสดงตะกร้า ปรับจำนวน/ลบรายการ เลือกการชำระ และยืนยันการขาย */
+import React, { useEffect, useState } from "react";
 import {
   ShoppingCart,
   Trash2,
@@ -20,6 +21,7 @@ const PAYMENT_METHODS = [
 const isWarmBakeryOption = (name = "") =>
   name.includes("อุ่น") && !name.includes("ไม่ต้องอุ่น");
 
+/** รับรายการและ callbacks จาก CashierView เพื่อจัดการขั้นตอน checkout */
 export default function CartSidebar({
   cartItems,
   onUpdateQuantity,
@@ -30,14 +32,33 @@ export default function CartSidebar({
 }) {
   const [selectedPayment, setSelectedPayment] = useState("cash");
   const [discountAmount, setDiscountAmount] = useState(0);
+  const [cashReceived, setCashReceived] = useState("");
+
+  useEffect(() => {
+    if (cartItems.length === 0) setCashReceived("");
+  }, [cartItems.length]);
 
   const totalQuantity = cartItems.reduce((acc, item) => acc + item.quantity, 0);
   const totalAmount = cartItems.reduce((acc, item) => acc + item.subtotal, 0);
+  const discount = Math.min(Math.max(Number(discountAmount) || 0, 0), totalAmount);
+  const netAmount = Math.max(totalAmount - discount, 0);
+  const receivedAmount = Number(cashReceived);
+  const hasEnoughCash = selectedPayment !== "cash"
+    || netAmount === 0
+    || (cashReceived !== "" && Number.isInteger(receivedAmount) && receivedAmount >= netAmount);
+  const changeAmount = cashReceived !== "" && Number.isFinite(receivedAmount)
+    ? Math.max(receivedAmount - netAmount, 0)
+    : 0;
+  const quickCashAmounts = [...new Set([
+    netAmount,
+    ...[50, 100, 500, 1000].filter((amount) => amount >= netAmount),
+  ])];
 
   const handleCheckoutClick = () => {
     if (cartItems.length === 0 || isSubmitting) return;
     onCheckout({
       paymentMethod: selectedPayment,
+      cashReceived: selectedPayment === "cash" ? (netAmount === 0 ? 0 : receivedAmount) : null,
       items: cartItems.map((item) => ({
         productId: item.productId,
         quantity: item.quantity,
@@ -52,7 +73,7 @@ export default function CartSidebar({
         bakeryOptionId: item.bakeryOptionId,
         bakeryOptionName: item.bakeryOptionName,
       })),
-      discountAmount: Math.min(Math.max(Number(discountAmount) || 0, 0), totalAmount),
+      discountAmount: discount,
     });
   };
 
@@ -230,15 +251,66 @@ export default function CartSidebar({
             </div>
             <div className="pricing-row total">
               <span>ยอดสุทธิรวม</span>
-              <span className="total-highlight">฿{Math.max(totalAmount - (Number(discountAmount) || 0), 0).toFixed(2)}</span>
+              <span className="total-highlight">฿{netAmount.toFixed(2)}</span>
             </div>
           </div>
+
+          {selectedPayment === "cash" && (
+            <div className="cash-tender-panel">
+              <label className="cash-tender-field" htmlFor="cash-received">
+                <span>รับเงินมา</span>
+                <span className="cash-tender-input-wrap">
+                  <span aria-hidden="true">฿</span>
+                  <input
+                    id="cash-received"
+                    type="number"
+                    min={netAmount}
+                    step="1"
+                    inputMode="numeric"
+                    placeholder="จำนวนเงิน"
+                    value={cashReceived}
+                    onChange={(event) => setCashReceived(event.target.value)}
+                    aria-describedby="cash-change-status"
+                  />
+                </span>
+              </label>
+              <div className="cash-quick-amounts" aria-label="จำนวนเงินด่วน">
+                {quickCashAmounts.map((amount) => (
+                  <button
+                    key={amount}
+                    type="button"
+                    className={amount === netAmount ? "is-exact" : ""}
+                    onClick={() => setCashReceived(String(amount))}
+                  >
+                    {amount === netAmount ? "พอดี" : `฿${amount.toLocaleString("th-TH")}`}
+                  </button>
+                ))}
+              </div>
+              <div
+                className={`cash-change-row ${cashReceived !== "" && receivedAmount < netAmount ? "is-short" : ""}`}
+                id="cash-change-status"
+                role="status"
+                aria-live="polite"
+              >
+                <span>{cashReceived === "" ? "เงินทอน" : receivedAmount < netAmount ? "รับเงินยังไม่ครบ" : "เงินทอน"}</span>
+                <strong>
+                  {netAmount === 0
+                    ? "฿0.00"
+                    : cashReceived === ""
+                    ? "กรอกจำนวนเงิน"
+                    : receivedAmount < netAmount
+                      ? `ขาด ฿${(netAmount - receivedAmount).toFixed(2)}`
+                      : `฿${changeAmount.toFixed(2)}`}
+                </strong>
+              </div>
+            </div>
+          )}
 
           {/* Submit Checkout Button */}
           <button
             className="checkout-btn"
             onClick={handleCheckoutClick}
-            disabled={isSubmitting || cartItems.length === 0}
+            disabled={isSubmitting || cartItems.length === 0 || !hasEnoughCash}
           >
             {isSubmitting ? (
               <span>กำลังบันทึกออเดอร์...</span>

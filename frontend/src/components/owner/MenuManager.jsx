@@ -1,3 +1,4 @@
+/** หน้าจัดการเมนูของ owner: ค้นหา เพิ่ม แก้ไข ซ่อน และจัดการรูปสินค้า */
 import React, { useState, useEffect, useRef } from "react";
 import {
   Plus,
@@ -59,6 +60,7 @@ const PRESET_IMAGES = [
   },
 ];
 
+/** ประสานฟอร์มเมนู รูปภาพ และคำแนะนำวิธีชงกับ product APIs */
 export default function MenuManager({ onMenuUpdated }) {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);

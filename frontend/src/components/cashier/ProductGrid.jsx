@@ -1,7 +1,9 @@
+/** จัดเมนูเป็นกริดตามหมวดที่เลือกและแสดง empty state เมื่อไม่มีสินค้า */
 import React from 'react';
 import ProductCard from './ProductCard';
 import { PackageOpen } from 'lucide-react';
 
+/** เลือกชุดหมวดที่ต้องแสดงแล้วส่งแต่ละเมนูไปยัง ProductCard */
 export default function ProductGrid({ categories, selectedCategoryId, onSelectProduct }) {
   // If selectedCategoryId is null, flatten all products from all categories
   const displayedCategories = selectedCategoryId

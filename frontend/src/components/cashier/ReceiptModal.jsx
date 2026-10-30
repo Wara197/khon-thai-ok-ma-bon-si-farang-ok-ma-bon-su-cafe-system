@@ -1,3 +1,4 @@
+/** สรุปผลออเดอร์และพิมพ์ใบเสร็จหลังสร้างรายการสำเร็จ */
 import React from "react";
 import { CheckCircle2, Printer, PlusCircle, ArrowRight, X } from "lucide-react";
 
@@ -5,6 +6,7 @@ const SHOP_NAME = "Coffee Shop";
 const CASHIER_NAME = "Cashier";
 const POS_NAME = "POS 1";
 
+/** แสดงเลขคิว ยอดชำระ รายการสินค้า และทางลัดกลับไปหน้าคิว */
 export default function ReceiptModal({
   orderResult,
   cartItems = [],
@@ -83,6 +85,18 @@ export default function ReceiptModal({
               ฿{Number(orderResult.totalAmount).toFixed(2)}
             </strong>
           </div>
+          {orderResult.paymentMethod === "cash" && (
+            <>
+              <div className="receipt-detail-row">
+                <span>รับเงินมา:</span>
+                <strong>฿{Number(orderResult.cashReceived).toFixed(2)}</strong>
+              </div>
+              <div className="receipt-detail-row">
+                <span>เงินทอน:</span>
+                <strong className="receipt-amount-text">฿{Number(orderResult.changeAmount).toFixed(2)}</strong>
+              </div>
+            </>
+          )}
           <div className="receipt-detail-row">
             <span>สถานะเริ่มต้น:</span>
             <span className="status-pill-pending">รอทำ (Pending)</span>
@@ -186,6 +200,13 @@ export default function ReceiptModal({
             {Number(orderResult.totalAmount).toFixed(2)}
           </span>
         </div>
+
+        {orderResult.paymentMethod === "cash" && (
+          <>
+            <div className="pr-payment-row">รับเงินมา: <strong>{Number(orderResult.cashReceived).toFixed(2)}</strong></div>
+            <div className="pr-payment-row">เงินทอน: <strong>{Number(orderResult.changeAmount).toFixed(2)}</strong></div>
+          </>
+        )}
 
         <div className="pr-divider-dashed" />
 

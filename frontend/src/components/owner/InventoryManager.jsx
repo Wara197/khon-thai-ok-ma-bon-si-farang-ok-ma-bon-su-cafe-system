@@ -1,12 +1,16 @@
-import React, { useEffect, useState } from "react";
+/** หน้าจัดการสต็อกของ owner: วัตถุดิบ สูตรต่อเมนู รับเข้า และประวัติ */
+import React, { useEffect, useRef, useState } from "react";
 import { AlertTriangle, Plus, RefreshCw, Save, Trash2 } from "lucide-react";
 import { createInventory, deleteRecipe, fetchInventory, fetchProducts, receiveInventory, saveRecipe, updateInventory } from "../../services/api";
 
-export default function InventoryManager() {
+/** โหลดข้อมูลคลังและอัปเดตผ่าน owner-only API */
+export default function InventoryManager({ selectedBranch = 1, branches = [] }) {
+  const branchName = branches.find((branch) => Number(branch.id) === Number(selectedBranch))?.name || `สาขา ${selectedBranch}`;
   // แยก state ตามงานบนหน้าจอ: รายการสต็อก, สูตรต่อเมนู, และแบบฟอร์มรับสินค้าเข้า
   const [items, setItems] = useState([]);
   const [error, setError] = useState("");
   const [savingId, setSavingId] = useState(null);
+  const [savedId, setSavedId] = useState(null);
   const [newItem, setNewItem] = useState({ name: "", stockQty: "", minThreshold: "", unit: "" });
   const [adding, setAdding] = useState(false);
   const [recipes, setRecipes] = useState([]);
@@ -15,19 +19,46 @@ export default function InventoryManager() {
   const [productOptions, setProductOptions] = useState({ size: [], temperature: [], bakery_option: [], sweetness: [] });
   const [movements, setMovements] = useState([]);
   const [receiveForm, setReceiveForm] = useState({});
+  const loadRequestId = useRef(0);
+  const selectedBranchRef = useRef(selectedBranch);
 
   const load = async () => {
     // โหลดสต็อก สูตร และประวัติใหม่หลังการแก้ไข ให้ทุกส่วนแสดงข้อมูลล่าสุด
-    try { const data = await fetchInventory(); setItems(data.items || []); setRecipes(data.recipes || []); setMovements(data.movements || []); setError(""); }
-    catch (err) { setError(err.message); }
+    const requestId = ++loadRequestId.current;
+    try {
+      const data = await fetchInventory(selectedBranchRef.current);
+      if (requestId !== loadRequestId.current) return;
+      setItems(data.items || []); setRecipes(data.recipes || []); setMovements(data.movements || []); setError("");
+    }
+    catch (err) { if (requestId === loadRequestId.current) setError(err.message); }
   };
-  useEffect(() => { load(); fetchProducts().then((data) => { setProducts((data.categories || []).flatMap((category) => category.products || [])); setProductOptions(data.options || {}); }).catch(() => {}); }, []);
-  const change = (id, key, value) => setItems((current) => current.map((item) => item.id === id ? { ...item, [key]: value } : item));
+  useEffect(() => {
+    selectedBranchRef.current = selectedBranch;
+    setSavedId(null); setReceiveForm({}); setNewItem({ name: "", stockQty: "", minThreshold: "", unit: "" }); load();
+  }, [selectedBranch]);
+  useEffect(() => { fetchProducts().then((data) => { setProducts((data.categories || []).flatMap((category) => category.products || [])); setProductOptions(data.options || {}); }).catch(() => {}); }, []);
+  const change = (id, key, value) => {
+    setSavedId(null);
+    setItems((current) => current.map((item) => item.id === id ? { ...item, [key]: value } : item));
+  };
   const save = async (item) => {
     setSavingId(item.id);
+    setSavedId(null);
+    setError("");
     try {
-      await updateInventory(item.id, { stockQty: item.stock_qty, minThreshold: item.min_threshold });
-      await load();
+      const updated = await updateInventory(item.id, { stockQty: item.stock_qty, minThreshold: item.min_threshold, branchId: selectedBranch });
+      if (Number(selectedBranchRef.current) !== Number(selectedBranch)) return;
+      // อัปเดตแถวทันทีและคงลำดับเดิม ไม่รอโหลดรายการทั้งคลังกลับมาแทนหน้าจอ
+      setItems((current) => current.map((existing) => existing.id === item.id
+        ? { ...existing, stock_qty: updated.stockQty, min_threshold: updated.minThreshold }
+        : existing));
+      setSavedId(item.id);
+      // โหลดประวัติแยกจากผลบันทึก เพื่อไม่ให้การรีเฟรชล้มเหลวกลบสถานะว่าบันทึกสำเร็จ
+      fetchInventory(selectedBranch).then((data) => {
+        if (Number(selectedBranchRef.current) !== Number(selectedBranch)) return;
+        setRecipes(data.recipes || []);
+        setMovements(data.movements || []);
+      }).catch(() => {});
     } catch (err) { setError(err.message); }
     finally { setSavingId(null); }
   };
@@ -35,7 +66,7 @@ export default function InventoryManager() {
     event.preventDefault();
     setAdding(true);
     try {
-      await createInventory(newItem);
+      await createInventory({ ...newItem, branchId: selectedBranch });
       setNewItem({ name: "", stockQty: "", minThreshold: "", unit: "" });
       await load();
     } catch (err) { setError(err.message); }
@@ -51,7 +82,7 @@ export default function InventoryManager() {
     const quantity = Number(receiveForm[item.id]?.quantity);
     if (!Number.isFinite(quantity) || quantity <= 0) { setError("ระบุจำนวนรับเข้ามากกว่า 0"); return; }
     try {
-      await receiveInventory(item.id, { quantity, note: receiveForm[item.id]?.note || "" });
+      await receiveInventory(item.id, { quantity, note: receiveForm[item.id]?.note || "", branchId: selectedBranch });
       setReceiveForm((current) => ({ ...current, [item.id]: { quantity: "", note: "" } }));
       await load();
     } catch (err) { setError(err.message); }
@@ -76,7 +107,7 @@ export default function InventoryManager() {
   const low = items.filter((item) => Number(item.stock_qty) <= Number(item.min_threshold));
   return <section className="inventory-manager owner-section-box">
     <div className="section-box-header">
-      <div className="box-title-group"><AlertTriangle size={20} /><h2>คลังวัตถุดิบ</h2></div>
+      <div className="box-title-group"><AlertTriangle size={20} /><div><h2>คลังวัตถุดิบ</h2><p className="inventory-branch-note">{branchName} · ยอดคงเหลือแยกตามสาขา · สูตรใช้ร่วมกัน</p></div></div>
       <button type="button" className="owner-queue-action" onClick={load}><RefreshCw size={15} /> โหลดใหม่</button>
     </div>
     {low.length > 0 && <p className="inventory-alert" role="alert"><AlertTriangle size={16} /> วัตถุดิบต่ำกว่าเกณฑ์: {low.map((item) => item.name).join(", ")}</p>}
@@ -106,7 +137,7 @@ export default function InventoryManager() {
             <span className="inventory-stock-unit">{item.unit}</span>
           </span>
         </label>
-        <button type="button" onClick={() => save(item)} disabled={savingId === item.id}><Save size={15} /> {savingId === item.id ? "กำลังบันทึก" : "บันทึก"}</button>
+        <button type="button" className={`inventory-save-button ${savedId === item.id ? "is-saved" : ""}`} onClick={() => save(item)} disabled={savingId === item.id}><Save size={15} /> {savingId === item.id ? "กำลังบันทึก" : savedId === item.id ? "บันทึกแล้ว" : "บันทึก"}</button>
         <div className="inventory-receive-controls">
           <label className="inventory-receive-quantity">
             <input aria-label={`จำนวนรับเข้า (${item.unit})`} type="number" min="0.01" step="0.01" placeholder="จำนวน" value={receiveForm[item.id]?.quantity || ""} onChange={(event) => setReceiveForm((current) => ({ ...current, [item.id]: { ...current[item.id], quantity: event.target.value } }))} />
@@ -172,7 +203,7 @@ export default function InventoryManager() {
     </section>
     <section className="inventory-history">
       <h3>ประวัติความเคลื่อนไหวล่าสุด</h3>
-      {movements.length ? <div className="inventory-history-list">{movements.map((movement) => <div key={movement.id} className="inventory-history-row"><strong>{movement.inventory_name}</strong><span>{movement.reason.startsWith("stock_received") ? "รับเข้า" : movement.reason === "order_created" ? "ตัดสต็อก · ออเดอร์" : movement.reason === "order_cancelled" ? "คืนสต็อก · ยกเลิกออเดอร์" : "ปรับยอด"}{movement.reason.includes(": ") ? ` · ${movement.reason.split(": ").slice(1).join(": ")}` : ""}</span><b className={movement.change_qty < 0 ? "is-decrease" : "is-increase"}>{movement.change_qty > 0 ? "+" : ""}{movement.change_qty} {movement.unit}</b><time>{new Date(movement.created_at.replace(" ", "T")).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" })}</time></div>)}</div> : <p>ยังไม่มีประวัติรับเข้า/ตัด/คืนวัตถุดิบ</p>}
+      {movements.length ? <div className="inventory-history-list">{movements.map((movement) => <div key={movement.id} className="inventory-history-row"><strong>{movement.inventory_name}</strong><span>{movement.reason === "sample_stock" ? "ยอดตัวอย่าง" : movement.reason.startsWith("stock_received") ? "รับเข้า" : movement.reason === "order_created" ? "ตัดสต็อก · ออเดอร์" : movement.reason === "order_cancelled" ? "คืนสต็อก · ยกเลิกออเดอร์" : "ปรับยอด"}{movement.reason.includes(": ") ? ` · ${movement.reason.split(": ").slice(1).join(": ")}` : ""}</span><b className={movement.change_qty < 0 ? "is-decrease" : "is-increase"}>{movement.change_qty > 0 ? "+" : ""}{movement.change_qty} {movement.unit}</b><time>{new Date(movement.created_at.replace(" ", "T")).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" })}</time></div>)}</div> : <p>ยังไม่มีประวัติรับเข้า/ตัด/คืนวัตถุดิบ</p>}
     </section>
   </section>;
 }

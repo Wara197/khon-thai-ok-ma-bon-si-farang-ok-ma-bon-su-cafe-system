@@ -1,3 +1,4 @@
+/** การ์ดออเดอร์หนึ่งใบ: แสดงตัวเลือก/วิธีชงและปุ่มเลื่อนหรือยกเลิกสถานะคิว */
 import React, { useState } from "react";
 import {
   Clock,
@@ -10,9 +11,11 @@ import {
   XCircle,
 } from "lucide-react";
 
+/** แยกตัวเลือกเบเกอรี่อุ่นร้อนออกจากตัวเลือกที่รับตามปกติ */
 const isWarmBakeryOption = (name = "") =>
   name.includes("อุ่น") && !name.includes("ไม่ต้องอุ่น");
 
+/** แปลง snapshot ตัวเลือกใน order item เป็นข้อมูลอ่านง่ายสำหรับสถานีชง */
 export default function QueueCard({
   order,
   optionsMap,

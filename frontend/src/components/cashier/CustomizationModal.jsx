@@ -1,3 +1,4 @@
+/** หน้าต่างเลือกขนาด อุณหภูมิ ความหวาน ท็อปปิง/บริการเบเกอรี่ และจำนวนก่อนใส่ตะกร้า */
 import React, { useState, useEffect } from "react";
 import {
   X,
@@ -13,6 +14,7 @@ import {
   PackageCheck,
 } from "lucide-react";
 
+/** คำนวณราคาตามตัวเลือกและส่งค่าที่เลือกกลับให้ CashierView */
 export default function CustomizationModal({
   product,
   options,

@@ -1,6 +1,8 @@
+/** ฟอร์มเข้าสู่ระบบและแสดงข้อผิดพลาด/สถานะระหว่างรอคำตอบจาก backend */
 import React, { useState } from "react";
 import { Coffee, LockKeyhole, LogIn } from "lucide-react";
 
+/** ส่ง username/password ให้ App ทำ authentication โดยไม่เก็บ credential ถาวร */
 export default function LoginScreen({ onLogin }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");

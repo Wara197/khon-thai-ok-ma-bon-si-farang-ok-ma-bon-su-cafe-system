@@ -1,3 +1,4 @@
+/** หน้าขายหลัก: โหลดเมนู ประกอบตะกร้า สร้างออเดอร์ และแสดงใบเสร็จ */
 import React, { useState, useEffect } from 'react';
 import CategoryTabs from './CategoryTabs';
 import ProductGrid from './ProductGrid';
@@ -7,6 +8,7 @@ import ReceiptModal from './ReceiptModal';
 import { fetchProducts, createOrder } from '../../services/api';
 import { AlertCircle, RefreshCw, Store } from 'lucide-react';
 
+/** ประสานเมนู ตัวเลือกสินค้า ตะกร้า และการส่งออเดอร์ให้ backend */
 export default function CashierView({
   selectedBranch = 1,
   branches = [],
@@ -113,12 +115,13 @@ export default function CashierView({
   };
 
   // Handle Checkout (Confirm Order - FR-03, FR-04, FR-05, FR-06)
-  const handleCheckout = async ({ paymentMethod, items, discountAmount }) => {
+  const handleCheckout = async ({ paymentMethod, cashReceived, items, discountAmount }) => {
     setIsSubmitting(true);
     setSubmitError('');
     try {
       const result = await createOrder({
         paymentMethod,
+        cashReceived,
         items,
         branchId: selectedBranch,
         discountAmount,

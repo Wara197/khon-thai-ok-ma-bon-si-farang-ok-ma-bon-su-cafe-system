@@ -1,3 +1,4 @@
+/** หน้าคิวบาริสต้า: โหลดออเดอร์ตามสาขา อัปเดตสถานะ และดู stock แบบอ่านอย่างเดียว */
 import React, { useState, useEffect, useRef } from 'react';
 import {
   RefreshCw,
@@ -13,7 +14,8 @@ import {
 import QueueCard from './QueueCard';
 import { fetchQueue, updateOrderStatus, fetchProducts, cancelOrder, fetchInventory } from '../../services/api';
 
-export default function BaristaView({ selectedBranch = 1, branches = [] }) {
+/** แสดงตัวนับสถานะ ตัวกรองสาขา และการ์ดคิวที่บาริสต้าดำเนินการได้ */
+export default function BaristaView({ selectedBranch = 1, branches = [], canViewAllBranches = false }) {
   const [orders, setOrders] = useState([]);
   const [optionsMap, setOptionsMap] = useState({ sizes: {}, sweetness: {}, toppings: {} });
   const [activeFilter, setActiveFilter] = useState('all');
@@ -34,7 +36,8 @@ export default function BaristaView({ selectedBranch = 1, branches = [] }) {
   const loadStock = async () => {
     setStockLoading(true);
     try {
-      const data = await fetchInventory();
+      const stockBranchId = branchFilter === 'all' ? 'all' : branchFilter;
+      const data = await fetchInventory(stockBranchId);
       setStockItems(data.items || []);
       setStockUpdatedAt(new Date());
       setStockError('');
@@ -46,7 +49,7 @@ export default function BaristaView({ selectedBranch = 1, branches = [] }) {
     loadStock();
     const interval = setInterval(loadStock, 30000);
     return () => clearInterval(interval);
-  }, [showStock]);
+  }, [showStock, branchFilter, selectedBranch]);
 
   // Update branch filter when parent navbar changes selected branch
   useEffect(() => {
@@ -156,6 +159,13 @@ export default function BaristaView({ selectedBranch = 1, branches = [] }) {
     return true; // 'all'
   });
 
+  const stockGroups = Object.values(stockItems.reduce((groups, item) => {
+    const branchId = item.branch_id ?? selectedBranch;
+    if (!groups[branchId]) groups[branchId] = { id: branchId, name: item.branch_name || `สาขา ${branchId}`, items: [] };
+    groups[branchId].items.push(item);
+    return groups;
+  }, {}));
+
   return (
     <div className="barista-view-container animate-fadeIn">
       {/* Top Station Header */}
@@ -183,12 +193,12 @@ export default function BaristaView({ selectedBranch = 1, branches = [] }) {
           </button>
           {/* Branch Filter Pills */}
           <div className="barista-branch-pills">
-            <button
+            {canViewAllBranches && <button
               className={`branch-pill ${branchFilter === 'all' ? 'active' : ''}`}
               onClick={() => setBranchFilter('all')}
             >
               ทุกสาขา
-            </button>
+            </button>}
             {(branches || []).map((b) => (
               <button
                 key={b.id}
@@ -212,16 +222,21 @@ export default function BaristaView({ selectedBranch = 1, branches = [] }) {
       </div>
 
       {showStock && <section className="barista-stock-panel" aria-label="ภาพรวมวัตถุดิบ">
-        <div className="barista-stock-heading"><div><h3>วัตถุดิบคงเหลือ</h3><p>ดูยอดและแจ้งเตือนวัตถุดิบใกล้หมด · สิทธิ์อ่านอย่างเดียว</p></div>
+        <div className="barista-stock-heading"><div><h3>วัตถุดิบคงเหลือ · {branchFilter === 'all' ? 'ทุกสาขา' : (branches || []).find((branch) => Number(branch.id) === Number(branchFilter))?.name || `สาขา ${branchFilter}`}</h3><p>ยอดแต่ละสาขาแสดงแยกกัน · สิทธิ์อ่านอย่างเดียว</p></div>
           <div className="barista-stock-updated">{stockUpdatedAt ? `อัปเดต ${stockUpdatedAt.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}` : ''}
             <button type="button" onClick={loadStock} disabled={stockLoading}><RefreshCw size={15} /> รีเฟรช</button></div>
         </div>
         {stockError && <p className="barista-stock-error" role="alert">{stockError}</p>}
-        {stockLoading && stockItems.length === 0 ? <p>กำลังโหลดสต็อก…</p> : <div className="barista-stock-grid">
-          {stockItems.map((item) => { const low = Number(item.stock_qty) <= Number(item.min_threshold); return <article key={item.id} className={`barista-stock-item ${low ? 'is-low' : ''}`}>
-            <strong>{item.name}</strong><span className="barista-stock-quantity">{Number(item.stock_qty).toLocaleString('th-TH')} <small>{item.unit}</small></span>
-            <span className="barista-stock-status">{low ? 'ใกล้หมด' : `จุดแจ้งเตือน ${Number(item.min_threshold).toLocaleString('th-TH')} ${item.unit}`}</span>
-          </article>; })}
+        {stockLoading && stockItems.length === 0 ? <p>กำลังโหลดสต็อก…</p> : <div className="barista-stock-groups">
+          {stockGroups.map((group) => <section className="barista-stock-group" key={group.id}>
+            {branchFilter === 'all' && <h4>{group.name}</h4>}
+            <div className="barista-stock-grid">
+              {group.items.map((item) => { const low = Number(item.stock_qty) <= Number(item.min_threshold); return <article key={`${group.id}-${item.id}`} className={`barista-stock-item ${low ? 'is-low' : ''}`}>
+                <strong>{item.name}</strong><span className="barista-stock-quantity">{Number(item.stock_qty).toLocaleString('th-TH')} <small>{item.unit}</small></span>
+                <span className="barista-stock-status">{low ? 'ใกล้หมด' : `จุดแจ้งเตือน ${Number(item.min_threshold).toLocaleString('th-TH')} ${item.unit}`}</span>
+              </article>; })}
+            </div>
+          </section>)}
         </div>}
       </section>}
 

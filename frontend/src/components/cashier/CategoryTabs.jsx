@@ -1,3 +1,4 @@
+/** ปุ่มเลือกหมวดหมู่สินค้าและตัวเลือกแสดงเมนูทั้งหมด */
 import React from 'react';
 import { Coffee, CupSoda, Croissant, Sparkles, LayoutGrid } from 'lucide-react';
 
@@ -8,6 +9,7 @@ const CATEGORY_ICONS = {
   'เบเกอรี่': Croissant,
 };
 
+/** ส่งหมวดที่ผู้ใช้เลือกกลับไปให้หน้าขายกรองรายการเมนู */
 export default function CategoryTabs({ categories, selectedCategoryId, onSelectCategory }) {
   return (
     <div className="category-tabs-container">

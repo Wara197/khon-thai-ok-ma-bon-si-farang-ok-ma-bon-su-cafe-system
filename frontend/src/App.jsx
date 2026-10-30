@@ -1,3 +1,4 @@
+/** จัดการ session, สาขาที่เลือก, แท็บหลัก และเชื่อมหน้าจอตาม role ผู้ใช้ */
 import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import CashierView from './components/cashier/CashierView';
@@ -7,6 +8,7 @@ import LoginScreen from './components/LoginScreen';
 import { fetchQueue, fetchBranches, fetchCurrentUser, login, logout } from './services/api';
 import './App.css';
 
+/** ควบคุม session และ state ส่วนกลางก่อนเลือกแสดง workspace ของผู้ใช้ */
 export default function App() {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -25,7 +27,10 @@ export default function App() {
     fetchCurrentUser().then((currentUser) => {
       if (!mounted) return;
       setUser(currentUser);
-      if (currentUser) setActiveTab(currentUser.role === 'owner' ? 'owner' : currentUser.role);
+      if (currentUser) {
+        setActiveTab(currentUser.role === 'owner' ? 'owner' : currentUser.role);
+        if (currentUser.role !== 'owner' && currentUser.branch_id) setSelectedBranch(Number(currentUser.branch_id));
+      }
     }).catch(() => { if (mounted) setUser(null); }).finally(() => { if (mounted) setAuthLoading(false); });
     // เมื่อ API ตอบว่า session หมดอายุ ให้ล้างสถานะผู้ใช้และคิวที่แสดงใน navbar
     const expire = () => { setUser(null); setQueueCount(0); };
@@ -33,12 +38,15 @@ export default function App() {
     return () => { mounted = false; window.removeEventListener('coffee-pos-auth-expired', expire); };
   }, []);
 
+  // รับ user ที่ backend ยืนยันแล้ว และเปิดแท็บเริ่มต้นตาม role
   const handleLogin = async (username, password) => {
     const loggedInUser = await login(username, password);
     setUser(loggedInUser);
     setActiveTab(loggedInUser.role === 'owner' ? 'owner' : loggedInUser.role);
+    if (loggedInUser.role !== 'owner' && loggedInUser.branchId) setSelectedBranch(Number(loggedInUser.branchId));
   };
 
+  // ล้าง state ฝั่งหน้าเว็บเสมอ แม้ request logout จะมีข้อผิดพลาด
   const handleLogout = async () => {
     try { await logout(); } finally { setUser(null); setQueueCount(0); }
   };
@@ -60,6 +68,7 @@ export default function App() {
   }, [user]);
 
   // Keep queue badge updated in navbar for selected branch
+  // อัปเดต badge จำนวนคิวของสาขาที่เลือก โดยไม่ poll สำหรับ cashier
   const refreshQueueCount = async () => {
     if (!user || user.role === 'cashier') { setQueueCount(0); return; }
     try {
@@ -80,6 +89,8 @@ export default function App() {
 
   if (authLoading) return <div className="auth-loading">กำลังตรวจสอบสิทธิ์…</div>;
   if (!user) return <LoginScreen onLogin={handleLogin} />;
+  // owner เลือกสาขาที่กำลังดูได้; บัญชีพนักงานยึดสาขาจาก session เสมอ
+  const activeBranch = user.role === 'owner' ? selectedBranch : Number(user.branch_id || selectedBranch);
 
   return (
     <div className="app-container">
@@ -89,8 +100,8 @@ export default function App() {
         setActiveTab={setActiveTab}
         queueCount={queueCount}
         branches={branches}
-        selectedBranch={selectedBranch}
-        onSelectBranch={setSelectedBranch}
+        selectedBranch={activeBranch}
+        onSelectBranch={user.role === 'owner' ? setSelectedBranch : undefined}
         user={user}
         onLogout={handleLogout}
       />
@@ -98,7 +109,7 @@ export default function App() {
       {/* Main Views */}
       {activeTab === 'cashier' && (
         <CashierView
-          selectedBranch={selectedBranch}
+          selectedBranch={activeBranch}
           branches={branches}
           onOrderPlaced={refreshQueueCount}
           onSwitchToBarista={user.role === 'owner' ? () => setActiveTab('barista') : undefined}
@@ -106,13 +117,14 @@ export default function App() {
       )}
       {activeTab === 'barista' && (
         <BaristaView
-          selectedBranch={selectedBranch}
+          selectedBranch={activeBranch}
           branches={branches}
+          canViewAllBranches={user.role === 'owner'}
         />
       )}
       {activeTab === 'owner' && (
         <OwnerView
-          selectedBranch={selectedBranch}
+          selectedBranch={activeBranch}
           branches={branches}
           currentUser={user}
         />

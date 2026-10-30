@@ -1,3 +1,4 @@
+/** การ์ดเมนูหนึ่งรายการพร้อมรูป/ไอคอน fallback และทางเลือกเปิด customization */
 import React, { useState } from 'react';
 import { Plus, Coffee, CupSoda, Sparkles, Croissant } from 'lucide-react';
 
@@ -8,6 +9,7 @@ const ICON_MAP = {
   4: Croissant,
 };
 
+/** แสดงชื่อ ราคา และรูปเมนู; คลิกการ์ดเพื่อเริ่มปรับแต่งสินค้า */
 export default function ProductCard({ product, categoryId, onSelect }) {
   const [imageError, setImageError] = useState(false);
   const IconComponent = ICON_MAP[categoryId] || Coffee;

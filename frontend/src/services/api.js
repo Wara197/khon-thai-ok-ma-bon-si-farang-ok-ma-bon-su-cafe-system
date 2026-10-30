@@ -1,10 +1,8 @@
-/**
- * Client API Service for Coffee Shop POS
- * Interacts with Backend REST endpoints
- */
+/** รวม client functions สำหรับ REST API; จัดการ session cookie, JSON และ error response */
 
 const API_BASE = "/api";
 
+/** ส่ง request พร้อม session cookie และแจ้ง App เมื่อ session หมดอายุ */
 async function apiFetch(url, options = {}) {
   // ส่ง cookie session ไปกับ API ทุกครั้ง และแจ้ง App เมื่อ session หมดอายุเพื่อกลับหน้า login
   const response = await fetch(url, { credentials: "same-origin", ...options });
@@ -14,6 +12,7 @@ async function apiFetch(url, options = {}) {
   return response;
 }
 
+// Authentication และ session ของผู้ใช้ปัจจุบัน
 export async function fetchCurrentUser() {
   const res = await apiFetch(`${API_BASE}/auth/me`);
   if (!res.ok) return null;
@@ -35,6 +34,7 @@ export async function logout() {
   await apiFetch(`${API_BASE}/auth/logout`, { method: "POST" });
 }
 
+// API สำหรับเจ้าของร้านจัดการบัญชีพนักงาน
 export async function fetchUsers() {
   const res = await apiFetch(`${API_BASE}/users`);
   const data = await res.json().catch(() => ({}));
@@ -47,6 +47,13 @@ export async function createUser(payload) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || "ไม่สามารถสร้างบัญชีผู้ใช้ได้");
   return data.user;
+}
+
+export async function setUserBranch(id, branchId) {
+  const res = await apiFetch(`${API_BASE}/users/${id}/branch`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ branchId }) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "ไม่สามารถเปลี่ยนสาขาประจำบัญชีได้");
+  return data;
 }
 
 export async function setUserActive(id, isActive) {
@@ -63,6 +70,7 @@ export async function resetUserPassword(id, password) {
   return data;
 }
 
+// ข้อมูลเมนู/หมวด/สาขาที่ใช้ร่วมกันในหลายหน้าจอ
 export async function fetchProducts() {
   const res = await apiFetch(`${API_BASE}/products`);
   if (!res.ok) {
@@ -90,6 +98,7 @@ export async function fetchBranches() {
   return res.json();
 }
 
+// สร้างออเดอร์และอ่าน/ปรับสถานะคิวตามวงจรการให้บริการ
 export async function createOrder(orderData) {
   const res = await apiFetch(`${API_BASE}/orders`, {
     method: "POST",
@@ -166,8 +175,9 @@ export async function fetchSalesReport(branchId = null, period = "today", signal
   return res.json();
 }
 
-export async function fetchInventory() {
-  const res = await apiFetch(`${API_BASE}/inventory`);
+// คลังวัตถุดิบ สูตร และการรับสินค้าเข้า (สิทธิ์ถูกตรวจที่ backend)
+export async function fetchInventory(branchId = 1) {
+  const res = await apiFetch(`${API_BASE}/inventory?branchId=${encodeURIComponent(branchId)}`);
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || "ไม่สามารถโหลดคลังวัตถุดิบได้");
   return data;
@@ -222,6 +232,7 @@ export async function deleteRecipe(productId, inventoryId, optionType = "base", 
   return data;
 }
 
+// จัดการเมนูและส่งรูปภาพไปยัง endpoint upload
 export async function createProduct(productData) {
   const res = await apiFetch(`${API_BASE}/products`, {
     method: "POST",

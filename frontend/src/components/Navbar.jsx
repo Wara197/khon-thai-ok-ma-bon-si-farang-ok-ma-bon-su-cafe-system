@@ -1,3 +1,4 @@
+/** แถบนำทางหลัก: สลับ workspace เลือกสาขา แสดงบัญชี และ logout */
 import React, { useState, useEffect, useRef } from "react";
 import {
   Coffee,
@@ -11,6 +12,7 @@ import {
   UserRound,
 } from "lucide-react";
 
+/** รับ role และ state จาก App เพื่อแสดงเฉพาะแท็บ/ตัวเลือกที่เกี่ยวข้อง */
 export default function Navbar({
   activeTab,
   setActiveTab,
@@ -92,7 +94,7 @@ export default function Navbar({
 
       <div className="navbar-info">
         {/* Custom Branch Switcher Dropdown */}
-        <div
+        {user?.role === "owner" ? <div
           className="custom-dropdown-container branch-dropdown-container"
           ref={branchDropdownRef}
           title="สลับสาขาที่กำลังใช้งาน"
@@ -136,7 +138,10 @@ export default function Navbar({
               ))}
             </div>
           )}
-        </div>
+        </div> : <div className="branch-dropdown-container branch-fixed-label" aria-label="สาขาประจำบัญชี">
+          <Store size={16} className="branch-icon" />
+          <span className="branch-selected-label">{currentBranch?.name || "สาขาประจำบัญชี"}</span>
+        </div>}
         <div className="navbar-account">
           <span className="navbar-account-identity"><UserRound size={15} /><strong>{user?.username}</strong><small>{roleLabels[user?.role]}</small></span>
           <button type="button" className="navbar-logout-btn" onClick={onLogout}><LogOut size={15} /><span>ออกจากระบบ</span></button>
