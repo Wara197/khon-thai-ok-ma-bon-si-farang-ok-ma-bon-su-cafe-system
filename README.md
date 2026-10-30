@@ -23,15 +23,20 @@ project/
 │   ├── controllers/           # login, order, product, inventory และ report logic
 │   ├── entities/              # SQLite queries
 │   ├── auth/                  # password hashing และ session/role middleware
-│   └── public/uploads/        # รูปที่อัปโหลด
-└── frontend/src/
-    ├── App.jsx                # สถานะแท็บและสาขาส่วนกลาง
-    ├── services/api.js        # REST client
-    └── components/
-        ├── cashier/
-        ├── barista/
-        └── owner/
+│   └── public/uploads/        # รูปเมนูที่ API จัดเก็บ
+├── frontend/
+│   ├── public/                # ไอคอน รูปเมนู และสำเนารูปสำหรับ Vite dev
+│   └── src/
+│       ├── App.jsx            # สถานะแท็บและสาขาส่วนกลาง
+│       ├── services/api.js    # REST client
+│       └── components/        # cashier/, barista/, owner/
+├── docs/                      # เอกสารรายสัปดาห์, diagrams, รายงาน และคู่มือนำเสนอ
+├── PRODUCT.md                 # บริบทผู้ใช้และขอบเขตผลิตภัณฑ์
+├── DESIGN.md                  # visual system และ UI tokens
+└── package.json               # คำสั่งติดตั้ง, build และเริ่มระบบ
 ```
+
+ไฟล์ SQLite และ `.env` อยู่กับ backend เพื่อให้ runtime หาเจอ; โฟลเดอร์ `public/uploads` เป็นข้อมูลใช้งานจริงจึงไม่ย้ายไปปะปนกับ source. เปิด [ดัชนีเอกสาร](docs/README.md) เพื่อหาไฟล์แต่ละสัปดาห์และรายงาน.
 
 ## เริ่มใช้งาน
 
@@ -56,25 +61,25 @@ npm run create-user -- --username owner --role owner
 
 ## API ที่มีใน source
 
-| Method | Path | หน้าที่ |
-|---|---|---|
-| GET | `/api/products` | หมวดหมู่ เมนูที่เปิดขาย และตัวเลือก |
-| GET | `/api/categories` | หมวดหมู่ |
-| GET | `/api/branches` | สาขา |
-| POST | `/api/upload` | owner-only; PNG/JPEG/WEBP/GIF, ตรวจ signature และจำกัด 15 MB |
-| POST | `/api/products` | เพิ่มเมนู |
-| PUT / DELETE | `/api/products/:id` | แก้ไข/ซ่อนเมนู |
-| POST | `/api/orders` | สร้างออเดอร์และบันทึกวิธีชำระที่เลือก |
-| GET | `/api/orders/queue` | รายการคิวที่ยัง active; รับ `branchId` |
-| GET | `/api/orders/queue/stats` | จำนวนคิวตามสถานะ; รับ `branchId` |
-| PATCH / DELETE | `/api/orders/:id/status` / `/api/orders/:id` | เปลี่ยนสถานะ / ยกเลิกคิว |
-| GET | `/api/reports/sales` | รายงาน; รับ `branchId` และ `period` |
-| GET | `/api/orders/report` | alias ของ sales report |
-| GET | `/api/inventory` | owner ดูคลัง/สูตร/movements; barista ดูเฉพาะยอดคงเหลือและ low-stock |
-| POST / PUT | `/api/inventory`, `/api/inventory/:id`, `/api/inventory/:id/receive` | owner เพิ่ม/ปรับ/รับวัตถุดิบ |
-| PUT / DELETE | `/api/recipes`, `/api/recipes/:productId/:inventoryId/:optionType/:optionId` | owner จัดการสูตร รวมถึงสูตรระดับความหวาน |
-| POST / GET / POST | `/api/auth/login`, `/api/auth/me`, `/api/auth/logout` | เข้าสู่ระบบ, ดู session ปัจจุบัน, ออกจากระบบ |
-| GET / POST / PATCH | `/api/users`, `/api/users/:id/active`, `/api/users/:id/password` | owner จัดการบัญชีและสิทธิ์พนักงาน |
+| Method             | Path                                                                         | หน้าที่                                                             |
+| ------------------ | ---------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| GET                | `/api/products`                                                              | หมวดหมู่ เมนูที่เปิดขาย และตัวเลือก                                 |
+| GET                | `/api/categories`                                                            | หมวดหมู่                                                            |
+| GET                | `/api/branches`                                                              | สาขา                                                                |
+| POST               | `/api/upload`                                                                | owner-only; PNG/JPEG/WEBP/GIF, ตรวจ signature และจำกัด 15 MB        |
+| POST               | `/api/products`                                                              | เพิ่มเมนู                                                           |
+| PUT / DELETE       | `/api/products/:id`                                                          | แก้ไข/ซ่อนเมนู                                                      |
+| POST               | `/api/orders`                                                                | สร้างออเดอร์และบันทึกวิธีชำระที่เลือก                               |
+| GET                | `/api/orders/queue`                                                          | รายการคิวที่ยัง active; รับ `branchId`                              |
+| GET                | `/api/orders/queue/stats`                                                    | จำนวนคิวตามสถานะ; รับ `branchId`                                    |
+| PATCH / DELETE     | `/api/orders/:id/status` / `/api/orders/:id`                                 | เปลี่ยนสถานะ / ยกเลิกคิว                                            |
+| GET                | `/api/reports/sales`                                                         | รายงาน; รับ `branchId` และ `period`                                 |
+| GET                | `/api/orders/report`                                                         | alias ของ sales report                                              |
+| GET                | `/api/inventory`                                                             | owner ดูคลัง/สูตร/movements; barista ดูเฉพาะยอดคงเหลือและ low-stock |
+| POST / PUT         | `/api/inventory`, `/api/inventory/:id`, `/api/inventory/:id/receive`         | owner เพิ่ม/ปรับ/รับวัตถุดิบ                                        |
+| PUT / DELETE       | `/api/recipes`, `/api/recipes/:productId/:inventoryId/:optionType/:optionId` | owner จัดการสูตร รวมถึงสูตรระดับความหวาน                            |
+| POST / GET / POST  | `/api/auth/login`, `/api/auth/me`, `/api/auth/logout`                        | เข้าสู่ระบบ, ดู session ปัจจุบัน, ออกจากระบบ                        |
+| GET / POST / PATCH | `/api/users`, `/api/users/:id/active`, `/api/users/:id/password`             | owner จัดการบัญชีและสิทธิ์พนักงาน                                   |
 
 ## ขอบเขตที่ยังไม่มีใน runtime
 
