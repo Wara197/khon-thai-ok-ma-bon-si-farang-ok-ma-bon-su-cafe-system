@@ -1,7 +1,6 @@
--- Static reference for the 13 tables created in backend/db.js.
--- Runtime startup executes DDL in db.js, including migrations and PRAGMA settings.
--- This file documents the current fresh-install structure; it does not seed data.
--- SQLite foreign-key enforcement is enabled by db.setup() with PRAGMA foreign_keys=ON.
+-- Schema อ้างอิงสำหรับตารางที่สร้างจริงใน backend/db.js; startup รัน DDL จากไฟล์นั้น
+-- ใช้ตรวจโครงสร้าง fresh install เท่านั้น ไม่ทำ migration หรือ seed ข้อมูล
+-- db.setup() เป็นผู้เปิดใช้ foreign-key enforcement ผ่าน PRAGMA
 
 CREATE TABLE IF NOT EXISTS branches (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -40,6 +39,8 @@ CREATE TABLE IF NOT EXISTS orders (
   queue_no INTEGER NOT NULL,
   total_amount INTEGER NOT NULL DEFAULT 0,
   discount_amount INTEGER NOT NULL DEFAULT 0,
+  cash_received INTEGER DEFAULT NULL,
+  change_amount INTEGER NOT NULL DEFAULT 0,
   payment_method TEXT NOT NULL DEFAULT 'cash',
   payment_status TEXT NOT NULL DEFAULT 'paid',
   status TEXT NOT NULL DEFAULT 'pending',
@@ -66,6 +67,17 @@ CREATE TABLE IF NOT EXISTS inventory (
   unit TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS inventory_stock (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  branch_id INTEGER NOT NULL,
+  inventory_id INTEGER NOT NULL,
+  stock_qty REAL NOT NULL DEFAULT 0,
+  min_threshold REAL NOT NULL DEFAULT 0,
+  UNIQUE(branch_id, inventory_id),
+  FOREIGN KEY (branch_id) REFERENCES branches(id),
+  FOREIGN KEY (inventory_id) REFERENCES inventory(id)
+);
+
 -- Legacy source table retained for one-time recipe migration.
 CREATE TABLE IF NOT EXISTS product_recipes (
   product_id INTEGER NOT NULL,
@@ -78,6 +90,7 @@ CREATE TABLE IF NOT EXISTS product_recipes (
 
 CREATE TABLE IF NOT EXISTS inventory_movements (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  branch_id INTEGER NOT NULL DEFAULT 1,
   inventory_id INTEGER NOT NULL,
   change_qty REAL NOT NULL,
   reason TEXT NOT NULL,
@@ -110,6 +123,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   password_salt TEXT NOT NULL,
   role TEXT NOT NULL CHECK(role IN ('owner', 'cashier', 'barista')),
+  branch_id INTEGER REFERENCES branches(id) ON DELETE SET NULL,
   is_active INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
 );

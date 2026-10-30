@@ -39,7 +39,7 @@
 | FR-08 สถานะคิว | ทำงาน | อนุญาตเลื่อนไปสถานะถัดไปทีละขั้นเท่านั้น; ยกเลิกได้เฉพาะ `pending` และ `cooking` |
 | FR-09 สต็อก | ทำงาน | มีคลัง, สูตรพื้นฐานและสูตรแทนค่าตามขนาด/ประเภท/ความหวาน/วิธีเสิร์ฟ, รับเข้า, ปรับยอด, ประวัติ movement; ตรวจสูตรและสต็อกก่อน order, ตัด/คืนตาม snapshot ใน transaction; Owner เห็น low-stock ใน Analytics/คลัง และ Barista อ่านยอด/threshold/สถานะต่ำได้ |
 | FR-10 รายงาน | ทำงานบางส่วน | รายงานยอดขายตามสาขาและช่วง `today`, `7d`, `30d`, `all`, ยอดเปรียบเทียบ, จำนวนเสร็จสิ้น, ช่องทางชำระ, top 5 และรายการล่าสุดสูงสุด 50 รายการ; queue status ในรายงานเป็นยอดรวมทุกช่วงเวลา |
-| FR-11 Login และ role access | ทำงาน | บัญชี `owner`, `cashier`, `barista`; session cookie และ middleware บังคับ role แยกตาม API; owner จัดการบัญชี/ปิดใช้งาน/ตั้งรหัสใหม่ | ยังไม่มีการกู้บัญชีด้วยอีเมล, MFA หรือ audit trail การเปลี่ยนสิทธิ์ |
+| FR-11 Login และ role access | ทำงาน | บัญชี `owner`, `cashier`, `barista`; session cookie และ middleware บังคับ role แยกตาม API; พนักงานผูกกับสาขาและเห็น/จัดการออเดอร์ของสาขาตน; owner จัดการบัญชี/สาขา/ปิดใช้งาน/ตั้งรหัสใหม่ | ยังไม่มีการกู้บัญชีด้วยอีเมล, MFA หรือ audit trail การเปลี่ยนสิทธิ์ |
 | สูตรบนคิวบาริสต้า (เพิ่มภายหลัง) | ทำงาน | ตอนสร้าง order ระบบ snapshot ชื่อวัตถุดิบ หน่วย และปริมาณที่ใช้ตัดสต็อกจริงลง `order_items.options_json.inventoryConsumptions`; QueueCard แสดงสูตรจาก snapshot; Owner สามารถใส่ `preparation_instructions` เสริมได้แยกจากสูตร | คิวเก่าที่มี snapshot รุ่นก่อนเก็บเฉพาะ ID/ปริมาณจะเติมชื่อและหน่วยจากคลังปัจจุบันโดยรักษาปริมาณใน snapshot; คิวที่ไม่มี consumption snapshot แจ้งว่าไม่มีข้อมูลสูตร |
 | จัดการเมนู | ทำงาน | เพิ่ม/แก้ไข/ซ่อนเมนู; ราคาเมนูเป็น base price เดียว ไม่พบการตั้งราคาฐานแยก S/M/L; option ราคาเพิ่มเก็บแยกใน `product_options`; Owner กำหนด `preparation_instructions` ได้สูงสุด 2,000 ตัวอักษรต่อเมนู |
 | อัปโหลดรูป | ทำงานตาม endpoint | รับเฉพาะ data URL ของ PNG/JPEG/WEBP/GIF, ตรวจ signature ให้สอดคล้องกับ MIME และจำกัดไฟล์ 15 MB; บันทึก `backend/public/uploads` และพยายามคัดลอกไป `frontend/public/uploads` |
@@ -87,12 +87,12 @@ NFR ด้านเวลา, usability, SUS, security และ compatibility �
 | DELETE | `/api/recipes/:productId/:inventoryId/:optionType/:optionId` | ลบกฎสูตรเฉพาะรายการ; owner เท่านั้น |
 | POST | `/api/auth/login`, `/api/auth/logout` | สร้างและเพิกถอน session cookie; login จำกัดความถี่ต่อ IP |
 | GET | `/api/auth/me` | คืนบัญชีที่ผูกกับ session ปัจจุบัน |
-| GET / POST | `/api/users` | owner อ่าน/สร้างบัญชีและกำหนด role |
-| PATCH | `/api/users/:id/active`, `/api/users/:id/password` | owner เปิด/ปิดบัญชีหรือ reset รหัส; ปิดบัญชี/reset จะเพิกถอน session เดิม |
+| GET / POST | `/api/users` | owner อ่าน/สร้างบัญชีและกำหนด role พร้อมสาขาประจำสำหรับพนักงาน |
+| PATCH | `/api/users/:id/branch`, `/api/users/:id/active`, `/api/users/:id/password` | owner กำหนดสาขาพนักงาน เปิด/ปิดบัญชี หรือ reset รหัส; เปลี่ยนสาขา/ปิดบัญชี/reset จะเพิกถอน session เดิม |
 
 ## 6. Schema ที่สร้างจาก runtime
 
-`db.setup()` สร้าง 13 ตารางด้วย SQLite รวม `product_recipes` legacy สำหรับ migration, `users` และ `sessions`:
+`db.setup()` สร้าง 14 ตารางด้วย SQLite รวม `inventory_stock` สำหรับยอดแยกสาขา, `product_recipes` legacy สำหรับ migration, `users` และ `sessions`:
 
 | ตาราง | คอลัมน์สำคัญ |
 |---|---|
@@ -100,19 +100,20 @@ NFR ด้านเวลา, usability, SUS, security และ compatibility �
 | `categories` | `id`, `name`, `sort_order` |
 | `products` | `id`, `category_id`, `name`, `base_price INTEGER`, `image_url`, `is_active` |
 | `product_options` | `id`, `option_type`, `name`, `extra_price INTEGER` |
-| `orders` | `id`, `branch_id`, `order_no UNIQUE`, `queue_no`, `total_amount INTEGER`, `discount_amount`, `payment_method`, `payment_status`, `status`, `created_at` |
+| `orders` | `id`, `branch_id`, `order_no UNIQUE`, `queue_no`, `total_amount INTEGER`, `discount_amount`, `cash_received`, `change_amount`, `payment_method`, `payment_status`, `status`, `created_at` |
 | `order_items` | `id`, `order_id`, `product_id`, `quantity`, `unit_price`, `subtotal`, `options_json` |
 | `inventory` | `id`, `name UNIQUE`, `stock_qty`, `min_threshold`, `unit` |
+| `inventory_stock` | `id`, `branch_id`, `inventory_id`, `stock_qty`, `min_threshold`; unique ต่อ `(branch_id, inventory_id)` |
 | `product_recipes` | สูตรเดิม `(product_id, inventory_id, quantity_per_unit)` ใช้เป็นแหล่งย้ายข้อมูลครั้งเดียว |
 | `product_recipe_rules` | `product_id`, `inventory_id`, `option_type`, `option_id`, `quantity_per_unit`; unique ต่อเมนู/วัตถุดิบ/option |
-| `inventory_movements` | `inventory_id`, `change_qty`, `reason`, `reference_type/id`, `created_at` |
+| `inventory_movements` | `branch_id`, `inventory_id`, `change_qty`, `reason`, `reference_type/id`, `created_at` |
 | `schema_migrations` | migration key สำหรับย้ายสูตรเดิมเข้าตาราง rule |
-| `users` | `username`, `password_hash`, `password_salt`, `role`, `is_active` |
+| `users` | `username`, `password_hash`, `password_salt`, `role`, `branch_id`, `is_active` |
 | `sessions` | `user_id`, `token_hash`, `expires_at`, `created_at` |
 
 `options_json` เก็บค่า option IDs/names, `isBakery` และ `inventoryConsumptions` ที่ snapshot ตอนสั่ง (วัตถุดิบ/หน่วย/ปริมาณ) เพื่อแสดงสูตรบนคิวและคืนสต็อกให้ตรงแม้มีการแก้สูตรภายหลัง. สำหรับคิวรุ่นเก่าที่ snapshot มีเพียง ID/ปริมาณ ระบบเติมชื่อและหน่วยจาก inventory โดยไม่แทนจำนวนใน snapshot. Seed เพิ่ม `น้ำตาล` แบบ idempotent และสร้างสูตรตัวอย่างตาม sweetness 25/50/75/100% เท่ากับ 3/6/9/12 กรัมต่อแก้ว; 0% ไม่สร้าง consumption rule. ปริมาณเป็นค่าตัวอย่างที่ owner แก้ได้ ไม่ใช่สูตรมาตรฐานของร้าน
 
-การสร้าง order ใช้ `BEGIN IMMEDIATE TRANSACTION` ครอบการตรวจสูตร/stock, สร้างคิว, insert header/items และตัด stock; การยกเลิกครอบการเปลี่ยนสถานะและคืน stock ใน transaction เดียวกัน. `PRAGMA foreign_keys=ON` เปิดใน connection runtime. `orders.branch_id` ยังไม่มี FK ใน DDL runtime
+การสร้าง order ใช้ `BEGIN IMMEDIATE TRANSACTION` ครอบการตรวจสูตร/stock, สร้างคิว, insert header/items และตัด stock; การยกเลิกครอบการเปลี่ยนสถานะและคืน stock ใน transaction เดียวกัน. `PRAGMA foreign_keys=ON` เปิดใน connection runtime. `orders.branch_id` และ `inventory_movements.branch_id` ยังไม่มี FK ใน DDL runtime
 
 ## 7. ลำดับงานจริง
 

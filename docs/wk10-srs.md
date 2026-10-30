@@ -65,11 +65,11 @@ Wireframe เป็นแบบที่เสนอไว้และอาจ�
 | PUT / DELETE | `/api/recipes`, `/api/recipes/:productId/:inventoryId/:optionType/:optionId` | owner เพิ่ม/ปรับ/ลบสูตร; รองรับ option type `sweetness` |
 | POST / GET | `/api/auth/login`, `/api/auth/me`, `/api/auth/logout` | เข้าสู่ระบบ/ดูบัญชีปัจจุบัน/ออกจากระบบ |
 | GET / POST | `/api/users` | owner ดูหรือเพิ่มบัญชี |
-| PATCH | `/api/users/:id/active`, `/api/users/:id/password` | owner เปิด/ปิดบัญชีหรือ reset password |
+| PATCH | `/api/users/:id/branch`, `/api/users/:id/active`, `/api/users/:id/password` | owner กำหนดสาขาพนักงาน เปิด/ปิดบัญชี หรือ reset password |
 
 ## 5. Data Requirements
 
-Runtime schema มี 13 ตาราง รวม `users` และ `sessions` สำหรับ role/session; ราคาเป็น integer บาท; `products.preparation_instructions` เก็บวิธีชงปัจจุบันของเมนู ขณะที่ตัวเลือก วิธีชง ณ เวลาสั่ง และ snapshot วัตถุดิบที่ใช้ถูกเก็บใน `order_items.options_json`. DDL ที่ startup สร้างอยู่ใน `backend/db.js`; `backend/schema.sql` เป็น reference copy ไม่ได้ถูก execute ตอน startup.
+Runtime schema มี 14 ตาราง รวม `inventory_stock` สำหรับสต็อกแยกสาขา, `users` และ `sessions` สำหรับ role/session; บัญชีพนักงานมี `branch_id` ประจำสาขา. ราคาเป็น integer บาท; `products.preparation_instructions` เก็บวิธีชงปัจจุบันของเมนู ขณะที่ตัวเลือก วิธีชง ณ เวลาสั่ง และ snapshot วัตถุดิบที่ใช้ถูกเก็บใน `order_items.options_json`. DDL ที่ startup สร้างอยู่ใน `backend/db.js`; `backend/schema.sql` เป็น reference copy ไม่ได้ถูก execute ตอน startup.
 
 ## 6. Constraints และคุณภาพที่ยังไม่ยืนยัน
 

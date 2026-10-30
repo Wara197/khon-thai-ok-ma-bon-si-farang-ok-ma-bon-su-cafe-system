@@ -56,7 +56,7 @@ frontend/src/
 
 `MenuManager.jsx` แก้คำแนะนำวิธีชงในข้อมูล Product; `QueueCard.jsx` แสดงสูตรวัตถุดิบจาก `inventoryConsumptions` snapshot ที่ใช้ตัดสต็อกจริง และแสดง `preparationInstructions` เป็นข้อความเสริมแยกกัน. คิวเก่าที่ snapshot มีเพียง ID/ปริมาณอาจเติมชื่อและหน่วยจากข้อมูลคลังปัจจุบันตาม logic ของ `Order.findQueue()`.
 
-Backend ใช้ Node.js/Express และ `sqlite3`; startup สร้าง/migrate schema และ seed ข้อมูลรวม inventory น้ำตาลกับ recipe rules ตามระดับความหวาน. Runtime มี 13 ตารางตามที่ระบุในภาคผนวก as-built; `product_recipes` คงไว้เพื่อ migration compatibility ขณะที่ `product_recipe_rules` เป็นกฎสูตรปัจจุบัน. Frontend ใช้ React 19 และ Vite. เส้นทาง upload และ branch listing บางส่วนถูกจัดการใน route โดยตรง จึงไม่ใช่การแยก BCM ที่สมบูรณ์ทุกกรณี.
+Backend ใช้ Node.js/Express และ `sqlite3`; startup สร้าง/migrate schema และ seed ข้อมูลรวม inventory น้ำตาลกับ recipe rules ตามระดับความหวาน. Runtime มี 14 ตารางรวม `inventory_stock` สำหรับยอดแยกสาขา; `product_recipes` คงไว้เพื่อ migration compatibility ขณะที่ `product_recipe_rules` เป็นกฎสูตรปัจจุบัน. บัญชีพนักงานผูก `branch_id` เพื่อจำกัดคิวและการเปิดออเดอร์ตามสาขา. Frontend ใช้ React 19 และ Vite. เส้นทาง upload และ branch listing บางส่วนถูกจัดการใน route โดยตรง จึงไม่ใช่การแยก BCM ที่สมบูรณ์ทุกกรณี.
 
 ## 3. Process View — กระบวนการขณะทำงาน
 
