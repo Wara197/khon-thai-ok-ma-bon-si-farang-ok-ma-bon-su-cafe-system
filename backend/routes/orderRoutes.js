@@ -1,3 +1,4 @@
+/** เชื่อม HTTP endpoints ของออเดอร์ คิว สถานะ และรายงานเข้ากับ controller */
 const express = require("express");
 const orderController = require("../controllers/orderController");
 const { requireRoles } = require("../auth/middleware");
@@ -17,7 +18,9 @@ const router = express.Router();
  */
 router.post("/orders", requireRoles("cashier", "owner"), async (req, res) => {
   try {
-    const result = await orderController.createOrder(req.body);
+    // branch_id จาก client เชื่อถือได้เฉพาะ owner; พนักงานใช้สาขาที่ผูกกับบัญชี
+    const data = req.user.role === "owner" ? req.body : { ...req.body, branchId: req.user.branch_id };
+    const result = await orderController.createOrder(data);
     res.status(result.status).json(result.body);
   } catch (err) {
     console.error("POST /api/orders error:", err);
@@ -32,7 +35,8 @@ router.post("/orders", requireRoles("cashier", "owner"), async (req, res) => {
  */
 router.get("/orders/queue", requireRoles("barista", "owner"), async (req, res) => {
   try {
-    const result = await orderController.getQueue(req.query.branchId);
+    const branchId = req.user.role === "owner" ? req.query.branchId : req.user.branch_id;
+    const result = await orderController.getQueue(branchId);
     res.status(result.status).json(result.body);
   } catch (err) {
     console.error("GET /api/orders/queue error:", err);
@@ -65,7 +69,8 @@ router.patch("/orders/:id/status", requireRoles("barista", "owner"), async (req,
   try {
     const orderId = parseInt(req.params.id, 10);
     const { status } = req.body;
-    const result = await orderController.updateStatus(orderId, status);
+    const branchId = req.user.role === "owner" ? null : req.user.branch_id;
+    const result = await orderController.updateStatus(orderId, status, branchId);
     res.status(result.status).json(result.body);
   } catch (err) {
     console.error("PATCH /api/orders/:id/status error:", err);
@@ -80,7 +85,8 @@ router.patch("/orders/:id/status", requireRoles("barista", "owner"), async (req,
 router.delete("/orders/:id", requireRoles("cashier", "barista", "owner"), async (req, res) => {
   try {
     const orderId = parseInt(req.params.id, 10);
-    const result = await orderController.cancelOrder(orderId);
+    const branchId = req.user.role === "owner" ? null : req.user.branch_id;
+    const result = await orderController.cancelOrder(orderId, branchId);
     res.status(result.status).json(result.body);
   } catch (err) {
     console.error("DELETE /api/orders/:id error:", err);
@@ -121,7 +127,7 @@ router.get("/orders/report", requireRoles("owner"), async (req, res) => {
 const Branch = require("../entities/Branch");
 router.get("/branches", requireRoles("cashier", "barista", "owner"), async (req, res) => {
   try {
-    const branches = await Branch.findAll();
+    const branches = req.user.role === "owner" ? await Branch.findAll() : [await Branch.findById(req.user.branch_id)].filter(Boolean);
     res.status(200).json(branches);
   } catch (err) {
     console.error("GET /api/branches error:", err);

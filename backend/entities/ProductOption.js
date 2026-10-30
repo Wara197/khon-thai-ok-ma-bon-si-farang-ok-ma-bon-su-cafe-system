@@ -1,3 +1,4 @@
+/** อ่านตัวเลือกสินค้าและค้นหาตัวเลือกตามชนิดหรือรายการ ID */
 const db = require("../db");
 
 // <<entity>> ProductOption — ติดต่อฐานข้อมูลตาราง product_options

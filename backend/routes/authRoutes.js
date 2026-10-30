@@ -1,3 +1,4 @@
+/** กำหนด HTTP endpoints สำหรับ login ตรวจ session ปัจจุบัน และ logout */
 const express = require("express");
 const controller = require("../controllers/authController");
 const { authenticate } = require("../auth/middleware");

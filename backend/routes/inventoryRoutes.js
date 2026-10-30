@@ -1,3 +1,4 @@
+/** กำหนด endpoints คลังสินค้าและจำกัดการแก้สต็อก/สูตรไว้สำหรับ owner */
 const express = require("express");
 const inventoryController = require("../controllers/inventoryController");
 const { requireRoles } = require("../auth/middleware");
@@ -9,10 +10,14 @@ const router = express.Router();
 
 router.get("/inventory", requireRoles("owner", "barista"), async (req, res) => {
   try {
+    const requestedBranch = req.query.branchId || "1";
+    // บาริสต้าดูได้เฉพาะ stock ของสาขาที่ผูกกับบัญชี; owner เลือกสาขาหรือดูรวมได้
+    const branchId = req.user.role === "owner" ? (requestedBranch === "all" ? "all" : Number(requestedBranch)) : req.user.branch_id;
+    if (branchId !== "all" && (!Number.isInteger(branchId) || branchId <= 0)) return res.status(400).json({ error: "สาขาไม่ถูกต้อง" });
     // ไม่ส่ง movement log หรือสูตรให้บาริสต้า ลดข้อมูลหลังบ้านที่ไม่จำเป็น
     const result = req.user.role === "owner"
-      ? await inventoryController.listInventory()
-      : await inventoryController.listStockOverview();
+      ? await inventoryController.listInventory(branchId)
+      : await inventoryController.listStockOverview(branchId);
     res.status(result.status).json(result.body);
   } catch (error) {
     console.error("GET /api/inventory error:", error);
@@ -22,7 +27,7 @@ router.get("/inventory", requireRoles("owner", "barista"), async (req, res) => {
 
 router.post("/inventory", requireRoles("owner"), async (req, res) => {
   try {
-    const result = await inventoryController.createInventory(req.body);
+    const result = await inventoryController.createInventory(req.body, req.body.branchId);
     res.status(result.status).json(result.body);
   } catch (error) {
     console.error("POST /api/inventory error:", error);
@@ -32,7 +37,7 @@ router.post("/inventory", requireRoles("owner"), async (req, res) => {
 
 router.put("/inventory/:id", requireRoles("owner"), async (req, res) => {
   try {
-    const result = await inventoryController.updateInventory(Number(req.params.id), req.body);
+    const result = await inventoryController.updateInventory(Number(req.params.id), req.body, req.body.branchId);
     res.status(result.status).json(result.body);
   } catch (error) {
     console.error("PUT /api/inventory/:id error:", error);
@@ -42,7 +47,7 @@ router.put("/inventory/:id", requireRoles("owner"), async (req, res) => {
 
 router.post("/inventory/:id/receive", requireRoles("owner"), async (req, res) => {
   try {
-    const result = await inventoryController.receiveInventory(Number(req.params.id), req.body);
+    const result = await inventoryController.receiveInventory(Number(req.params.id), req.body, req.body.branchId);
     res.status(result.status).json(result.body);
   } catch (error) {
     console.error("POST /api/inventory/:id/receive error:", error);

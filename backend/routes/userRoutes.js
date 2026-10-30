@@ -1,3 +1,4 @@
+/** กำหนด endpoints จัดการบัญชีพนักงาน โดยบังคับสิทธิ์ owner */
 const express = require("express");
 const controller = require("../controllers/authController");
 const { requireRoles } = require("../auth/middleware");
@@ -9,6 +10,9 @@ router.get("/users", requireRoles("owner"), async (req, res, next) => {
 });
 router.post("/users", requireRoles("owner"), async (req, res, next) => {
   try { await controller.createUser(req, res); } catch (error) { next(error); }
+});
+router.patch("/users/:id/branch", requireRoles("owner"), async (req, res, next) => {
+  try { await controller.setUserBranch(req, res); } catch (error) { next(error); }
 });
 router.patch("/users/:id/active", requireRoles("owner"), async (req, res, next) => {
   try { await controller.setUserActive(req, res); } catch (error) { next(error); }

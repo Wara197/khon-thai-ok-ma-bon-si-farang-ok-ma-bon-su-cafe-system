@@ -1,3 +1,4 @@
+/** เปิด SQLite, เตรียม schema/migrations/seed และส่ง helper query ให้ backend */
 const path = require("path");
 const sqlite3 = require("sqlite3");
 
@@ -113,6 +114,8 @@ async function setup() {
       queue_no       INTEGER NOT NULL,
       total_amount   INTEGER NOT NULL DEFAULT 0,
       discount_amount INTEGER NOT NULL DEFAULT 0,
+      cash_received INTEGER DEFAULT NULL,
+      change_amount INTEGER NOT NULL DEFAULT 0,
       payment_method TEXT    NOT NULL DEFAULT 'cash',
       payment_status TEXT    NOT NULL DEFAULT 'paid',
       status         TEXT    NOT NULL DEFAULT 'pending',
@@ -128,6 +131,12 @@ async function setup() {
     }
     if (cols && !cols.some((c) => c.name === "discount_amount")) {
       await run("ALTER TABLE orders ADD COLUMN discount_amount INTEGER NOT NULL DEFAULT 0");
+    }
+    if (cols && !cols.some((c) => c.name === "cash_received")) {
+      await run("ALTER TABLE orders ADD COLUMN cash_received INTEGER DEFAULT NULL");
+    }
+    if (cols && !cols.some((c) => c.name === "change_amount")) {
+      await run("ALTER TABLE orders ADD COLUMN change_amount INTEGER NOT NULL DEFAULT 0");
     }
     if (cols && !cols.some((c) => c.name === "payment_status")) {
       await run("ALTER TABLE orders ADD COLUMN payment_status TEXT NOT NULL DEFAULT 'paid'");
@@ -162,6 +171,18 @@ async function setup() {
     )
   `);
   await run(`
+    CREATE TABLE IF NOT EXISTS inventory_stock (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      branch_id INTEGER NOT NULL,
+      inventory_id INTEGER NOT NULL,
+      stock_qty REAL NOT NULL DEFAULT 0,
+      min_threshold REAL NOT NULL DEFAULT 0,
+      UNIQUE(branch_id, inventory_id),
+      FOREIGN KEY (branch_id) REFERENCES branches(id),
+      FOREIGN KEY (inventory_id) REFERENCES inventory(id)
+    )
+  `);
+  await run(`
     CREATE TABLE IF NOT EXISTS product_recipes (
       product_id INTEGER NOT NULL,
       inventory_id INTEGER NOT NULL,
@@ -174,6 +195,7 @@ async function setup() {
   await run(`
     CREATE TABLE IF NOT EXISTS inventory_movements (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      branch_id INTEGER NOT NULL DEFAULT 1,
       inventory_id INTEGER NOT NULL,
       change_qty REAL NOT NULL,
       reason TEXT NOT NULL,
@@ -183,6 +205,10 @@ async function setup() {
       FOREIGN KEY (inventory_id) REFERENCES inventory(id)
     )
   `);
+  const movementColumns = await all("PRAGMA table_info(inventory_movements)");
+  if (!movementColumns.some((column) => column.name === "branch_id")) {
+    await run("ALTER TABLE inventory_movements ADD COLUMN branch_id INTEGER NOT NULL DEFAULT 1");
+  }
   await run(`
     CREATE TABLE IF NOT EXISTS product_recipe_rules (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -205,9 +231,15 @@ async function setup() {
     password_hash TEXT NOT NULL,
     password_salt TEXT NOT NULL,
     role TEXT NOT NULL CHECK(role IN ('owner', 'cashier', 'barista')),
+    branch_id INTEGER REFERENCES branches(id) ON DELETE SET NULL,
     is_active INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
   )`);
+  // เพิ่มสาขาประจำบัญชีให้ฐานข้อมูลเดิม และย้ายพนักงานเก่าไปสาขา 1 เป็นค่าเริ่มต้น
+  const userColumns = await all("PRAGMA table_info(users)");
+  if (!userColumns.some((column) => column.name === "branch_id")) {
+    await run("ALTER TABLE users ADD COLUMN branch_id INTEGER REFERENCES branches(id) ON DELETE SET NULL");
+  }
   await run(`CREATE TABLE IF NOT EXISTS sessions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
@@ -219,12 +251,39 @@ async function setup() {
 
   // Seed mock data (เฉพาะครั้งแรกที่ยังไม่มีข้อมูล)
   await seedBranches();
+  await run("UPDATE users SET branch_id = 1 WHERE role IN ('cashier', 'barista') AND branch_id IS NULL");
   await seedMockData();
   await seedSampleOrders();
   await seedTemperatureAndBakeryOptions();
   await seedInventoryAndRecipes();
+  // ย้ายยอดคลังเดิมเข้าฐานสาขา 1 ครั้งเดียว และเติมแถวศูนย์ให้สาขาอื่นโดยไม่คูณยอดเดิม
+  await run(`
+    INSERT OR IGNORE INTO inventory_stock (branch_id, inventory_id, stock_qty, min_threshold)
+    SELECT b.id, i.id, CASE WHEN b.id = 1 THEN i.stock_qty ELSE 0 END, i.min_threshold
+    FROM branches b CROSS JOIN inventory i
+  `);
+  const branchSampleMigration = await get("SELECT name FROM schema_migrations WHERE name = 'branch_stock_sample_v1'");
+  if (!branchSampleMigration) {
+    // ใช้ยอดตัวอย่างเริ่มต้นให้สาขา 2/3; ไม่เขียนทับแถวที่มี stock จริงอยู่แล้ว
+    const sampleBalances = [
+      [2, "เมล็ดกาแฟ", 2000, 500], [2, "นมสด", 6000, 2000], [2, "ผงชา", 800, 250],
+      [2, "ผลไม้/ไซรัป", 2800, 800], [2, "เบเกอรี่", 30, 10], [2, "น้ำตาล", 3000, 500],
+      [3, "เมล็ดกาแฟ", 1600, 500], [3, "นมสด", 4200, 2000], [3, "ผงชา", 600, 250],
+      [3, "ผลไม้/ไซรัป", 2200, 800], [3, "เบเกอรี่", 20, 10], [3, "น้ำตาล", 2500, 500],
+    ];
+    for (const [branchId, name, stockQty, minThreshold] of sampleBalances) {
+      const item = await get("SELECT id FROM inventory WHERE name = ?", [name]);
+      if (!item) continue;
+      const updated = await run("UPDATE inventory_stock SET stock_qty = ?, min_threshold = ? WHERE branch_id = ? AND inventory_id = ? AND stock_qty = 0", [stockQty, minThreshold, branchId, item.id]);
+      if (updated.changes) {
+        await run("INSERT INTO inventory_movements (branch_id, inventory_id, change_qty, reason, reference_type) VALUES (?, ?, ?, ?, ?)", [branchId, item.id, stockQty, "sample_stock", "inventory"]);
+      }
+    }
+    await run("INSERT INTO schema_migrations (name) VALUES ('branch_stock_sample_v1')");
+  }
 }
 
+// สร้างวัตถุดิบ/สูตรเริ่มต้นและ migrate สูตร legacy โดยรักษาค่าที่ owner แก้แล้ว
 async function seedInventoryAndRecipes() {
   const count = await get("SELECT COUNT(*) AS c FROM inventory");
   if (!count || count.c === 0) {
@@ -286,6 +345,7 @@ async function seedInventoryAndRecipes() {
   }
 }
 
+// เติมตัวเลือกอุณหภูมิและวิธีรับเบเกอรี่ เฉพาะเมื่อฐานข้อมูลยังไม่มีรายการ
 async function seedTemperatureAndBakeryOptions() {
   const tempCount = await get("SELECT COUNT(*) AS c FROM product_options WHERE option_type = 'temperature'");
   if (!tempCount || tempCount.c === 0) {
@@ -301,6 +361,7 @@ async function seedTemperatureAndBakeryOptions() {
   }
 }
 
+// เตรียมสาขาตัวอย่างสำหรับการสาธิตครั้งแรก
 async function seedBranches() {
   const branchCount = await get("SELECT COUNT(*) AS c FROM branches");
   if (!branchCount || branchCount.c === 0) {
@@ -310,6 +371,7 @@ async function seedBranches() {
   }
 }
 
+// เติมออเดอร์ตัวอย่างเมื่อฐานข้อมูลยังว่าง เพื่อให้รายงานมีข้อมูลเริ่มต้น
 async function seedSampleOrders() {
   const orderCount = await get("SELECT COUNT(*) AS c FROM orders");
   if (!orderCount || orderCount.c === 0) {
@@ -347,8 +409,9 @@ async function seedSampleOrders() {
 }
 
 // ---------------------------------------------------------------------------
-// Seed Mock Data — เมนูกาแฟ 12 รายการ + ตัวเลือก
+// Seed Mock Data — เมนูตัวอย่าง 10 รายการ + ตัวเลือก
 // ---------------------------------------------------------------------------
+// สร้างหมวด เมนู และตัวเลือกตั้งต้นเฉพาะฐานข้อมูลที่ยังไม่มี categories
 async function seedMockData() {
   const { c } = await get("SELECT COUNT(*) AS c FROM categories");
   if (c > 0) return; // มีข้อมูลแล้ว ไม่ต้อง seed ซ้ำ

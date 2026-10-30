@@ -1,6 +1,8 @@
+/** สคริปต์ CLI สำหรับสร้างบัญชีผู้ใช้โดยไม่แสดงรหัสผ่านระหว่างพิมพ์ */
 const db = require("./db");
 const { hashPassword } = require("./auth/passwords");
 
+/** อ่านข้อความลับจาก terminal โดยปิด echo และรองรับการยกเลิกด้วย Ctrl+C */
 function readHidden(promptText) {
   // อ่านรหัสผ่านใน terminal โดยไม่ echo ตัวอักษรลงหน้าจอ
   return new Promise((resolve) => {
@@ -29,6 +31,7 @@ function readHidden(promptText) {
   });
 }
 
+/** ตรวจ arguments ยืนยันรหัสผ่าน และเพิ่มบัญชีแรก/บัญชีฉุกเฉินใน SQLite */
 async function main() {
   // ใช้สร้างบัญชีแรกหรือบัญชีฉุกเฉินจาก terminal โดยไม่ฝังรหัสเริ่มต้นไว้ใน source code
   const usernameArg = process.argv.find((arg) => arg.startsWith("--username="))?.split("=").slice(1).join("=") || "";
@@ -47,7 +50,7 @@ async function main() {
   if (password.length < 12 || password.length > 200) throw new Error("รหัสผ่านต้องมีความยาว 12–200 ตัวอักษร");
   if (password !== confirmation) throw new Error("รหัสผ่านทั้งสองครั้งไม่ตรงกัน");
   const { salt, hash } = await hashPassword(password);
-  await db.run("INSERT INTO users (username, password_hash, password_salt, role) VALUES (?, ?, ?, ?)", [username, hash, salt, role]);
+  await db.run("INSERT INTO users (username, password_hash, password_salt, role, branch_id) VALUES (?, ?, ?, ?, ?)", [username, hash, salt, role, role === "owner" ? null : 1]);
   console.log(`สร้างบัญชี ${username} (${role}) สำเร็จ`);
   process.exit(0);
 }

@@ -1,3 +1,4 @@
+/** คำสั่งอ่านและเขียนเมนูสินค้า รวมถึงคำแนะนำวิธีชงที่บันทึกกับสินค้า */
 const db = require("../db");
 
 // <<entity>> Product — ติดต่อฐานข้อมูลตาราง products, categories, product_options

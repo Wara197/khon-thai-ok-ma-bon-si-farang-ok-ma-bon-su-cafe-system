@@ -1,3 +1,4 @@
+/** สร้างและตรวจ password hash ด้วย scrypt พร้อม salt แยกสำหรับแต่ละบัญชี */
 const crypto = require("crypto");
 
 const KEY_LENGTH = 64;

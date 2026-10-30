@@ -1,3 +1,4 @@
+/** กำหนด endpoints สำหรับอ่าน/จัดการเมนูและอัปโหลดรูปสินค้า */
 const express = require("express");
 const fs = require("fs");
 const path = require("path");

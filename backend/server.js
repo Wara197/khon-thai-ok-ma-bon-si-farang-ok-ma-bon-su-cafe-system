@@ -1,3 +1,4 @@
+/** จุดเริ่ม backend: ตั้งค่า middleware, เชื่อม route/API, static frontend และเริ่ม server */
 const express = require("express");
 const cors = require("cors");
 const path = require("path");

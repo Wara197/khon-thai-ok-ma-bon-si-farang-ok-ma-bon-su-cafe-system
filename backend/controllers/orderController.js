@@ -1,3 +1,4 @@
+/** ใช้กฎรับออเดอร์ คำนวณราคา ตัด/คืนสต็อก และจัดการคิวกับรายงาน */
 const Product = require("../entities/Product");
 const ProductOption = require("../entities/ProductOption");
 const Order = require("../entities/Order");
@@ -14,7 +15,7 @@ const db = require("../db");
  * @param {Object} data - { paymentMethod, items: [{ productId, quantity, size, sweetness, toppings }] }
  */
 async function createOrder(data) {
-  const { paymentMethod, items, branchId, discountAmount = 0 } = data;
+  const { paymentMethod, items, branchId, discountAmount = 0, cashReceived } = data;
 
   // --- FR-03: Validate ข้อมูลที่จำเป็น ---
   if (!items || !Array.isArray(items) || items.length === 0) {
@@ -160,10 +161,19 @@ async function createOrder(data) {
   }
   const grossAmount = totalAmount;
   totalAmount -= parsedDiscount;
+  let parsedCashReceived = null;
+  let changeAmount = 0;
+  if (paymentMethod === "cash") {
+    parsedCashReceived = Number(cashReceived);
+    if (!Number.isInteger(parsedCashReceived) || parsedCashReceived < totalAmount) {
+      return { status: 400, body: { error: "เงินสดที่รับมาต้องเป็นจำนวนเต็มและไม่น้อยกว่ายอดสุทธิ" } };
+    }
+    changeAmount = parsedCashReceived - totalAmount;
+  }
 
   // FR-04/FR-09: จองเลขคิว ตรวจสต็อก บันทึก order/items และตัด stock เป็น atomic transaction
   const order = await db.transaction(async (connection) => {
-    const requirements = await Inventory.findRequirements(resolvedItems, connection);
+    const requirements = await Inventory.findRequirements(resolvedItems, parsedBranchId, connection);
     const needed = new Map();
     for (const item of resolvedItems) {
       const productRules = requirements.filter((rule) => rule.product_id === item.productId);
@@ -213,15 +223,15 @@ async function createOrder(data) {
     const now = new Date();
     const dateStr = now.getFullYear().toString() + String(now.getMonth() + 1).padStart(2, "0") + String(now.getDate()).padStart(2, "0");
     const orderNo = `POS-${dateStr}-${String(parsedBranchId).padStart(2, "0")}-${String(queueNo).padStart(4, "0")}`;
-    const created = await Order.create({ branchId: parsedBranchId, orderNo, queueNo, totalAmount, discountAmount: parsedDiscount, paymentMethod }, connection);
+    const created = await Order.create({ branchId: parsedBranchId, orderNo, queueNo, totalAmount, discountAmount: parsedDiscount, cashReceived: parsedCashReceived, changeAmount, paymentMethod }, connection);
     for (const item of resolvedItems) {
       await Order.createItem({ orderId: created.id, productId: item.productId, quantity: item.quantity, unitPrice: item.unitPrice, subtotal: item.subtotal, optionsJson: item.optionsJson }, connection);
     }
     for (const ingredient of needed.values()) {
-      await connection.run("UPDATE inventory SET stock_qty = stock_qty - ? WHERE id = ?", [ingredient.quantity, ingredient.inventory_id]);
+      await connection.run("UPDATE inventory_stock SET stock_qty = stock_qty - ? WHERE branch_id = ? AND inventory_id = ?", [ingredient.quantity, parsedBranchId, ingredient.inventory_id]);
       await connection.run(
-        "INSERT INTO inventory_movements (inventory_id, change_qty, reason, reference_type, reference_id) VALUES (?, ?, ?, ?, ?)",
-        [ingredient.inventory_id, -ingredient.quantity, "order_created", "order", created.id],
+        "INSERT INTO inventory_movements (branch_id, inventory_id, change_qty, reason, reference_type, reference_id) VALUES (?, ?, ?, ?, ?, ?)",
+        [parsedBranchId, ingredient.inventory_id, -ingredient.quantity, "order_created", "order", created.id],
       );
     }
     return created;
@@ -239,6 +249,8 @@ async function createOrder(data) {
       grossAmount,
       discountAmount: parsedDiscount,
       paymentMethod,
+      cashReceived: parsedCashReceived,
+      changeAmount,
       paymentStatus: "paid",
       status: "pending",
     },
@@ -264,7 +276,7 @@ async function getQueueStats(branchId = null) {
  * เปลี่ยนสถานะออเดอร์
  * อ้างอิง: FR-08 — ลำดับสถานะ: pending → cooking → ready → completed
  */
-async function updateStatus(orderId, newStatus) {
+async function updateStatus(orderId, newStatus, allowedBranchId = null) {
   const validStatuses = ["pending", "cooking", "ready", "completed"];
   if (!validStatuses.includes(newStatus)) {
     return { status: 400, body: { error: `สถานะไม่ถูกต้อง ต้องเป็น: ${validStatuses.join(", ")}` } };
@@ -273,6 +285,9 @@ async function updateStatus(orderId, newStatus) {
   const order = await Order.findById(orderId);
   if (!order) {
     return { status: 404, body: { error: `ไม่พบออเดอร์ id ${orderId}` } };
+  }
+  if (allowedBranchId != null && Number(order.branch_id) !== Number(allowedBranchId)) {
+    return { status: 403, body: { error: "บัญชีนี้จัดการคิวได้เฉพาะสาขาประจำ" } };
   }
 
   // อนุญาตเฉพาะสถานะถัดไปทีละขั้น เพื่อไม่ให้ข้ามขั้นตอนการทำเครื่องดื่ม
@@ -289,10 +304,13 @@ async function updateStatus(orderId, newStatus) {
  * ยกเลิกออเดอร์ — ยกเลิกได้เฉพาะสถานะ pending หรือ cooking เท่านั้น
  * ออเดอร์ที่ ready หรือ completed ไม่สามารถยกเลิกได้
  */
-async function cancelOrder(orderId) {
+async function cancelOrder(orderId, allowedBranchId = null) {
   const order = await Order.findById(orderId);
   if (!order) {
     return { status: 404, body: { error: `ไม่พบออเดอร์ id ${orderId}` } };
+  }
+  if (allowedBranchId != null && Number(order.branch_id) !== Number(allowedBranchId)) {
+    return { status: 403, body: { error: "บัญชีนี้จัดการออเดอร์ได้เฉพาะสาขาประจำ" } };
   }
 
   const cancellable = ["pending", "cooking"];
@@ -318,7 +336,7 @@ async function cancelOrder(orderId) {
         inventoryConsumptions: Array.isArray(options.inventoryConsumptions) ? options.inventoryConsumptions : null,
       };
     });
-    const requirements = await Inventory.findRequirements(itemsWithOptions, connection);
+    const requirements = await Inventory.findRequirements(itemsWithOptions, order.branch_id, connection);
     const restores = new Map();
     for (const item of itemsWithOptions) {
       if (item.inventoryConsumptions) {
@@ -345,8 +363,8 @@ async function cancelOrder(orderId) {
     }
     await connection.run("UPDATE orders SET status = 'cancelled' WHERE id = ?", [orderId]);
     for (const [inventoryId, quantity] of restores) {
-      await connection.run("UPDATE inventory SET stock_qty = stock_qty + ? WHERE id = ?", [quantity, inventoryId]);
-      await connection.run("INSERT INTO inventory_movements (inventory_id, change_qty, reason, reference_type, reference_id) VALUES (?, ?, ?, ?, ?)", [inventoryId, quantity, "order_cancelled", "order", orderId]);
+      await connection.run("UPDATE inventory_stock SET stock_qty = stock_qty + ? WHERE branch_id = ? AND inventory_id = ?", [quantity, order.branch_id, inventoryId]);
+      await connection.run("INSERT INTO inventory_movements (branch_id, inventory_id, change_qty, reason, reference_type, reference_id) VALUES (?, ?, ?, ?, ?, ?)", [order.branch_id, inventoryId, quantity, "order_cancelled", "order", orderId]);
     }
   });
   return { status: 200, body: { id: orderId, status: "cancelled", message: "ยกเลิกออเดอร์เรียบร้อยแล้ว" } };

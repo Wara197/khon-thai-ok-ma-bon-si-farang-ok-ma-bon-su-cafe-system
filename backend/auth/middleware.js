@@ -1,3 +1,4 @@
+/** จัดการ session cookie การยืนยันตัวตน และตรวจสิทธิ์ role สำหรับ API */
 const crypto = require("crypto");
 const { get, run } = require("../db");
 
@@ -28,12 +29,13 @@ async function authenticate(req, res, next) {
     // ฐานข้อมูลเก็บเฉพาะ hash ของ token; token จริงอยู่ใน cookie ของผู้ใช้เท่านั้น
     const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
     const user = await get(
-      `SELECT users.id, users.username, users.role
+      `SELECT users.id, users.username, users.role, users.branch_id
        FROM sessions JOIN users ON users.id = sessions.user_id
        WHERE sessions.token_hash = ? AND sessions.expires_at > datetime('now') AND users.is_active = 1`,
       [tokenHash],
     );
     if (!user) return res.status(401).json({ error: "เซสชันหมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง" });
+    if (user.role !== "owner" && !user.branch_id) return res.status(403).json({ error: "บัญชีนี้ยังไม่มีสาขาประจำ กรุณาให้เจ้าของร้านกำหนดสาขาก่อน" });
     req.user = user;
     next();
   } catch (error) {

@@ -1,3 +1,4 @@
+/** สคริปต์ครั้งคราวสำหรับอัปเดต URL รูปเมนูในฐานข้อมูล SQLite */
 const db = require("./db");
 
 const menuImages = [
@@ -61,6 +62,7 @@ const menuImages = [
   },
 ];
 
+/** อัปเดต image_url ของเมนูตามรายการด้านบนและพิมพ์ผลที่อ่านกลับจากฐานข้อมูล */
 async function updateProductImages() {
   console.log("Updating product images...");
   for (const item of menuImages) {

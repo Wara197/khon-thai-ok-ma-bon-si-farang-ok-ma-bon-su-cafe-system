@@ -1,3 +1,4 @@
+/** จัดรูปข้อมูลเมนูและตรวจคำขอเพิ่ม แก้ไข หรือซ่อนสินค้า */
 const Product = require("../entities/Product");
 const ProductOption = require("../entities/ProductOption");
 const Category = require("../entities/Category");

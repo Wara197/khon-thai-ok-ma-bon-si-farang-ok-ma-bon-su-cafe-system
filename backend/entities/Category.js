@@ -1,3 +1,4 @@
+/** คำสั่งอ่านหมวดหมู่เมนูจาก SQLite ตามลำดับที่กำหนดไว้ */
 const db = require("../db");
 
 // <<entity>> Category — ติดต่อฐานข้อมูลตาราง categories

@@ -1,3 +1,4 @@
+/** คำสั่งฐานข้อมูลสำหรับออเดอร์ รายการคิว สถานะ และรายงานการขาย */
 const db = require("../db");
 
 // <<entity>> Order — ติดต่อฐานข้อมูลตาราง orders และ order_items
@@ -19,13 +20,13 @@ class Order {
   /**
    * บันทึกหัวออเดอร์ (รองรับ branchId)
    */
-  static async create({ branchId = 1, orderNo, queueNo, totalAmount, discountAmount = 0, paymentMethod, paymentStatus = "paid" }, connection = db) {
+  static async create({ branchId = 1, orderNo, queueNo, totalAmount, discountAmount = 0, cashReceived = null, changeAmount = 0, paymentMethod, paymentStatus = "paid" }, connection = db) {
     const result = await connection.run(
-      `INSERT INTO orders (branch_id, order_no, queue_no, total_amount, discount_amount, payment_method, payment_status, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')`,
-      [branchId || 1, orderNo, queueNo, totalAmount, discountAmount, paymentMethod, paymentStatus],
+      `INSERT INTO orders (branch_id, order_no, queue_no, total_amount, discount_amount, cash_received, change_amount, payment_method, payment_status, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+      [branchId || 1, orderNo, queueNo, totalAmount, discountAmount, cashReceived, changeAmount, paymentMethod, paymentStatus],
     );
-    return { id: result.lastID, branchId: branchId || 1, orderNo, queueNo };
+    return { id: result.lastID, branchId: branchId || 1, orderNo, queueNo, cashReceived, changeAmount };
   }
 
   /**
