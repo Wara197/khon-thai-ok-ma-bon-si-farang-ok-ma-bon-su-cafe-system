@@ -1,6 +1,6 @@
 # Requirements Document v1 เป็น User Stories และ Use Case Diagram
 
-> **หมายเหตุการอ่าน:** User Stories, Acceptance Criteria และตาราง INVEST ในไฟล์นี้เป็นผลวิเคราะห์ความต้องการ ไม่ใช่ผลทดสอบซอฟต์แวร์หรือหลักฐานว่าทุก story ทำเสร็จแล้ว ให้ใช้ [as-built traceability](./as-built-reverse-engineering.md#3-ขอบเขตความสามารถและสถานะ-requirement) ตรวจสถานะโค้ดก่อนสรุปผล
+> **หมายเหตุการอ่าน:** User Stories, Acceptance Criteria และตาราง INVEST ในไฟล์นี้เป็นผลวิเคราะห์ความต้องการ ไม่ใช่ผลทดสอบซอฟต์แวร์หรือหลักฐานว่าทุก story ทำเสร็จแล้ว
 
 ## 1.Actor ที่เกี่ยวข้องกับระบบ
 
@@ -18,7 +18,7 @@
 
 ### Use Case Diagram ของระบบร้านกาแฟและเส้นความสัมพันธ์
 
-![Use Case Diagram](./wk04/Use%20Case%20ระบบร้านกาแฟ.png)
+![Use Case Diagram](./images/Use%20Case%20ระบบร้านกาแฟ.png)
 
 ### รายการ Use Case Diagram แสดงความสัมพันธ์ระหว่าง Actor กับ Use Case
 
