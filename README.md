@@ -6,13 +6,13 @@
 
 ## สมาชิกในกลุ่ม
 
-| ลำดับ | ชื่อ-นามสกุล | รหัสนักศึกษา | บทบาท |
-| ----- | ------------ | ------------ | ----- |
-| 1 | นายวราวุฒิ จำนงค์ผล | 67160197 | Project Lead / PM |
-| 2 | นายณภัทร ทองนาค | 67160182 | Business/System Analyst |
-| 3 | นายปฏิญญา พูลผล | 67160016 | Designer (UML/DB) |
-| 4 | นายณัฐวุฒิ รู้การนา | 67160028 | Developer |
-| 5 | นายธนพล ภู่เพ็ง | 67160396 | Presenter/Documenter |
+| ลำดับ | ชื่อ-นามสกุล        | รหัสนักศึกษา | บทบาท                   |
+| ----- | ------------------- | ------------ | ----------------------- |
+| 1     | นายวราวุฒิ จำนงค์ผล | 67160197     | Project Lead / PM       |
+| 2     | นายณภัทร ทองนาค     | 67160182     | Business/System Analyst |
+| 3     | นายปฏิญญา พูลผล     | 67160016     | Designer (UML/DB)       |
+| 4     | นายณัฐวุฒิ รู้การนา | 67160028     | Developer               |
+| 5     | นายธนพล ภู่เพ็ง     | 67160396     | Presenter/Documenter    |
 
 ## เทคโนโลยี
 
@@ -35,6 +35,7 @@ cafe-pos-group02/
 ## เอกสารโครงงาน
 
 - [Project Report (PDF)](docs/project-report.pdf)
+- [Presentation(PDF)](docs/Presentation_group02.pdf)
 - [Team Charter](docs/wk01-team-charter.md)
 - [Feasibility Report](docs/wk02-feasibility-report.md)
 - [Requirements](docs/wk03-requirements.md)
