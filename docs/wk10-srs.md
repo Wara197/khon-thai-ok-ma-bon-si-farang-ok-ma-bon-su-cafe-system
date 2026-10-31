@@ -4,7 +4,6 @@
 **ชนิดเอกสาร:** SRS as-built ฉบับตรวจจาก source
 **วันตรวจ:** 19 ตุลาคม 2026
 **ข้อกำหนดต้นทาง:** [wk03](./wk03-requirements.md), [User Stories](./wk04-user-stories.md)
-**รายละเอียด traceability:** [as-built reverse-engineering](./as-built-reverse-engineering.md)
 
 > เอกสารนี้แยกข้อกำหนดเดิมออกจากสิ่งที่ implement แล้ว คำว่า “ทำงาน” หมายถึงพบเส้นทางใน source ไม่ได้ยืนยันผล performance หรือผลทดสอบใช้งานจริง
 
@@ -18,22 +17,22 @@
 
 ## 3. Functional Requirements และสถานะ
 
-| ID | ความต้องการปัจจุบันตาม implementation | สถานะ/หลักฐาน |
-|---|---|---|
-| FR-01 | ดึงหมวดหมู่ เมนูเปิดขาย และ options | ทำงาน: `GET /api/products`, `Product.findAllActive()` |
-| FR-02 | เลือกประเภทเครื่องดื่ม ขนาด ความหวาน ท็อปปิง; เบเกอรี่เลือกวิธีรับ | ทำงาน: `CustomizationModal.jsx`; option values มาจาก `product_options` |
-| FR-03 | ปฏิเสธ cart ว่าง, payment method ที่ไม่รองรับ, product/quantity ไม่ถูกต้อง และตัวเลือกที่จำเป็นของเครื่องดื่ม | ทำงาน: `orderController.createOrder()` ตรวจ temperature/size/sweetness และชนิดของ option |
-| FR-04 | สร้าง order number และ queue number | ทำงาน: `POS-YYYYMMDD-BB-XXXX`; สร้าง/จองคิวแยกสาขาภายใน SQLite `BEGIN IMMEDIATE` transaction |
-| FR-05 | คิดราคาและรวมจำนวน | ทำงาน: base + temperature + size + toppings หรือ bakery option, คูณ quantity และหักส่วนลดจำนวนเงินบาท; ไม่มี tax |
-| FR-06 | บันทึกวิธีชำระ cash/transfer/qr | ทำงานเฉพาะการบันทึกชนิดที่เลือก; ไม่มี payment gateway/ผลยืนยันการโอน |
-| FR-07 | แสดงออเดอร์บนคิวบาริสต้า | ทำงานผ่าน polling ทุก 3 วินาที; ไม่มี WebSocket |
-| FR-08 | เปลี่ยน `pending`, `cooking`, `ready`, `completed` และยกเลิกบางสถานะ | ทำงาน: อนุญาตเฉพาะขั้นถัดไป; DELETE ยกเลิกได้เฉพาะ pending/cooking |
-| FR-09 | ตัดสต็อก/เตือนของใกล้หมด | ทำงาน: สูตร `base` หรือ override ตาม size/temperature/sweetness/bakery option; seed น้ำตาลตามระดับหวาน; รับเข้า/ปรับยอด/movements และตัด/คืนใน transaction; Owner จัดการ ส่วน Barista อ่าน stock/threshold/low-stock ได้อย่างเดียว |
-| FR-10 | รายงานตามสาขาและช่วงเวลา | ทำงานบางส่วน: ยอดขาย/เปรียบเทียบ/ชำระ/top 5/รายการล่าสุด; queue stats บางส่วนเป็นทุกช่วงเวลา และ ledger จำกัด 50 records |
-| FR-11 | จัดการเมนู | ทำงาน: เพิ่ม/แก้ไข/soft delete; ตั้ง base price, หมวด, ชื่อ, รูป; ไม่มี base price ต่อ size |
-| FR-12 | อัปโหลดรูปเมนู | ทำงานผ่าน base64 endpoint แต่ไม่ยืนยัน MIME จากเนื้อหาไฟล์ |
-| FR-13 | เข้าสู่ระบบและบังคับสิทธิ์ตาม role | ทำงาน: scrypt password hash, SHA-256 session token, HttpOnly SameSite=Lax cookie อายุ 12 ชั่วโมง, role guard ที่ API; owner จัดการบัญชีพนักงาน |
-| FR-14 (เพิ่มภายหลัง) | บาริสต้าเห็นสูตรวัตถุดิบที่ใช้ตัดสต็อกบนการ์ดคิว และอ่านคำแนะนำเสริมของเมนูได้ | ทำงาน: ตอนสร้างออเดอร์ snapshot วัตถุดิบ/หน่วย/ปริมาณจริงลง `order_items.options_json`; QueueCard แสดงสูตรจาก snapshot; `products.preparation_instructions` เป็นข้อความเสริมที่ snapshot แยกต่างหาก; สูตรไม่ถูกสร้างซ้ำในหน้าคิว |
+| ID                   | ความต้องการปัจจุบันตาม implementation                                                                         | สถานะ/หลักฐาน                                                                                                                                                                                                                      |
+| -------------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FR-01                | ดึงหมวดหมู่ เมนูเปิดขาย และ options                                                                           | ทำงาน: `GET /api/products`, `Product.findAllActive()`                                                                                                                                                                              |
+| FR-02                | เลือกประเภทเครื่องดื่ม ขนาด ความหวาน ท็อปปิง; เบเกอรี่เลือกวิธีรับ                                            | ทำงาน: `CustomizationModal.jsx`; option values มาจาก `product_options`                                                                                                                                                             |
+| FR-03                | ปฏิเสธ cart ว่าง, payment method ที่ไม่รองรับ, product/quantity ไม่ถูกต้อง และตัวเลือกที่จำเป็นของเครื่องดื่ม | ทำงาน: `orderController.createOrder()` ตรวจ temperature/size/sweetness และชนิดของ option                                                                                                                                           |
+| FR-04                | สร้าง order number และ queue number                                                                           | ทำงาน: `POS-YYYYMMDD-BB-XXXX`; สร้าง/จองคิวแยกสาขาภายใน SQLite `BEGIN IMMEDIATE` transaction                                                                                                                                       |
+| FR-05                | คิดราคาและรวมจำนวน                                                                                            | ทำงาน: base + temperature + size + toppings หรือ bakery option, คูณ quantity และหักส่วนลดจำนวนเงินบาท; ไม่มี tax                                                                                                                   |
+| FR-06                | บันทึกวิธีชำระ cash/transfer/qr                                                                               | ทำงานเฉพาะการบันทึกชนิดที่เลือก; ไม่มี payment gateway/ผลยืนยันการโอน                                                                                                                                                              |
+| FR-07                | แสดงออเดอร์บนคิวบาริสต้า                                                                                      | ทำงานผ่าน polling ทุก 3 วินาที; ไม่มี WebSocket                                                                                                                                                                                    |
+| FR-08                | เปลี่ยน `pending`, `cooking`, `ready`, `completed` และยกเลิกบางสถานะ                                          | ทำงาน: อนุญาตเฉพาะขั้นถัดไป; DELETE ยกเลิกได้เฉพาะ pending/cooking                                                                                                                                                                 |
+| FR-09                | ตัดสต็อก/เตือนของใกล้หมด                                                                                      | ทำงาน: สูตร `base` หรือ override ตาม size/temperature/sweetness/bakery option; seed น้ำตาลตามระดับหวาน; รับเข้า/ปรับยอด/movements และตัด/คืนใน transaction; Owner จัดการ ส่วน Barista อ่าน stock/threshold/low-stock ได้อย่างเดียว |
+| FR-10                | รายงานตามสาขาและช่วงเวลา                                                                                      | ทำงานบางส่วน: ยอดขาย/เปรียบเทียบ/ชำระ/top 5/รายการล่าสุด; queue stats บางส่วนเป็นทุกช่วงเวลา และ ledger จำกัด 50 records                                                                                                           |
+| FR-11                | จัดการเมนู                                                                                                    | ทำงาน: เพิ่ม/แก้ไข/soft delete; ตั้ง base price, หมวด, ชื่อ, รูป; ไม่มี base price ต่อ size                                                                                                                                        |
+| FR-12                | อัปโหลดรูปเมนู                                                                                                | ทำงานผ่าน base64 endpoint แต่ไม่ยืนยัน MIME จากเนื้อหาไฟล์                                                                                                                                                                         |
+| FR-13                | เข้าสู่ระบบและบังคับสิทธิ์ตาม role                                                                            | ทำงาน: scrypt password hash, SHA-256 session token, HttpOnly SameSite=Lax cookie อายุ 12 ชั่วโมง, role guard ที่ API; owner จัดการบัญชีพนักงาน                                                                                     |
+| FR-14 (เพิ่มภายหลัง) | บาริสต้าเห็นสูตรวัตถุดิบที่ใช้ตัดสต็อกบนการ์ดคิว และอ่านคำแนะนำเสริมของเมนูได้                                | ทำงาน: ตอนสร้างออเดอร์ snapshot วัตถุดิบ/หน่วย/ปริมาณจริงลง `order_items.options_json`; QueueCard แสดงสูตรจาก snapshot; `products.preparation_instructions` เป็นข้อความเสริมที่ snapshot แยกต่างหาก; สูตรไม่ถูกสร้างซ้ำในหน้าคิว   |
 
 ## 4. ข้อกำหนดส่วนต่อประสาน
 
@@ -50,22 +49,22 @@ Wireframe เป็นแบบที่เสนอไว้และอาจ�
 
 ### 4.2 REST API
 
-| Method | Endpoint | ผลลัพธ์หลัก |
-|---|---|---|
-| GET | `/api/products` | categories + active products (รวม `preparation_instructions`) + options |
-| GET | `/api/categories`, `/api/branches` | รายการหมวด/สาขา |
-| POST | `/api/upload` | URL รูปที่บันทึก |
-| POST / PUT / DELETE | `/api/products`, `/api/products/:id` | สร้าง/แก้ไข/ซ่อนเมนู; POST/PUT รับ `preparationInstructions` แบบ optional |
-| POST | `/api/orders` | สร้างหัวออเดอร์และรายการ |
-| GET | `/api/orders/queue`, `/api/orders/queue/stats` | รายการคิว/สรุปจำนวน; รองรับ `branchId` |
-| PATCH / DELETE | `/api/orders/:id/status`, `/api/orders/:id` | เปลี่ยนสถานะ/ยกเลิก |
-| GET | `/api/reports/sales`, `/api/orders/report` | รายงาน; รองรับ `branchId`, `period` |
-| GET | `/api/inventory` | owner อ่านรายการ/สูตร/movements; barista อ่านเฉพาะ stock overview |
-| POST / PUT | `/api/inventory`, `/api/inventory/:id`, `/api/inventory/:id/receive` | owner เพิ่ม/ปรับ/รับวัตถุดิบ |
-| PUT / DELETE | `/api/recipes`, `/api/recipes/:productId/:inventoryId/:optionType/:optionId` | owner เพิ่ม/ปรับ/ลบสูตร; รองรับ option type `sweetness` |
-| POST / GET | `/api/auth/login`, `/api/auth/me`, `/api/auth/logout` | เข้าสู่ระบบ/ดูบัญชีปัจจุบัน/ออกจากระบบ |
-| GET / POST | `/api/users` | owner ดูหรือเพิ่มบัญชี |
-| PATCH | `/api/users/:id/branch`, `/api/users/:id/active`, `/api/users/:id/password` | owner กำหนดสาขาพนักงาน เปิด/ปิดบัญชี หรือ reset password |
+| Method              | Endpoint                                                                     | ผลลัพธ์หลัก                                                               |
+| ------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| GET                 | `/api/products`                                                              | categories + active products (รวม `preparation_instructions`) + options   |
+| GET                 | `/api/categories`, `/api/branches`                                           | รายการหมวด/สาขา                                                           |
+| POST                | `/api/upload`                                                                | URL รูปที่บันทึก                                                          |
+| POST / PUT / DELETE | `/api/products`, `/api/products/:id`                                         | สร้าง/แก้ไข/ซ่อนเมนู; POST/PUT รับ `preparationInstructions` แบบ optional |
+| POST                | `/api/orders`                                                                | สร้างหัวออเดอร์และรายการ                                                  |
+| GET                 | `/api/orders/queue`, `/api/orders/queue/stats`                               | รายการคิว/สรุปจำนวน; รองรับ `branchId`                                    |
+| PATCH / DELETE      | `/api/orders/:id/status`, `/api/orders/:id`                                  | เปลี่ยนสถานะ/ยกเลิก                                                       |
+| GET                 | `/api/reports/sales`, `/api/orders/report`                                   | รายงาน; รองรับ `branchId`, `period`                                       |
+| GET                 | `/api/inventory`                                                             | owner อ่านรายการ/สูตร/movements; barista อ่านเฉพาะ stock overview         |
+| POST / PUT          | `/api/inventory`, `/api/inventory/:id`, `/api/inventory/:id/receive`         | owner เพิ่ม/ปรับ/รับวัตถุดิบ                                              |
+| PUT / DELETE        | `/api/recipes`, `/api/recipes/:productId/:inventoryId/:optionType/:optionId` | owner เพิ่ม/ปรับ/ลบสูตร; รองรับ option type `sweetness`                   |
+| POST / GET          | `/api/auth/login`, `/api/auth/me`, `/api/auth/logout`                        | เข้าสู่ระบบ/ดูบัญชีปัจจุบัน/ออกจากระบบ                                    |
+| GET / POST          | `/api/users`                                                                 | owner ดูหรือเพิ่มบัญชี                                                    |
+| PATCH               | `/api/users/:id/branch`, `/api/users/:id/active`, `/api/users/:id/password`  | owner กำหนดสาขาพนักงาน เปิด/ปิดบัญชี หรือ reset password                  |
 
 ## 5. Data Requirements
 
@@ -85,10 +84,10 @@ Runtime schema มี 14 ตาราง รวม `inventory_stock` สำห�
 
 ## 7. Source Traceability
 
-| พื้นที่ | Source |
-|---|---|
-| Startup / schema | `backend/server.js`, `backend/db.js` |
-| API boundary | `backend/routes/productRoutes.js`, `backend/routes/orderRoutes.js` |
-| Business logic | `backend/controllers/productController.js`, `backend/controllers/orderController.js` |
-| SQL queries | `backend/entities/*.js` |
-| UI/API client | `frontend/src/components/`, `frontend/src/services/api.js` |
+| พื้นที่          | Source                                                                               |
+| ---------------- | ------------------------------------------------------------------------------------ |
+| Startup / schema | `backend/server.js`, `backend/db.js`                                                 |
+| API boundary     | `backend/routes/productRoutes.js`, `backend/routes/orderRoutes.js`                   |
+| Business logic   | `backend/controllers/productController.js`, `backend/controllers/orderController.js` |
+| SQL queries      | `backend/entities/*.js`                                                              |
+| UI/API client    | `frontend/src/components/`, `frontend/src/services/api.js`                           |

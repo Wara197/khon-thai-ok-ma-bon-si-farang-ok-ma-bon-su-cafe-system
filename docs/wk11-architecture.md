@@ -2,7 +2,6 @@
 
 **สัปดาห์:** 11 — Architecture
 **วันที่ตรวจ source:** 19 ตุลาคม 2026
-**อ้างอิง:** [as-built reverse-engineering](./as-built-reverse-engineering.md)
 
 เอกสารนี้จัดสถาปัตยกรรมตามกรอบ 4+1 โดยสรุปมุมมองเชิงตรรกะ (Logical), การพัฒนา (Development), กระบวนการทำงาน (Process), การติดตั้งใช้งาน (Physical) และสถานการณ์ที่ใช้ตรวจว่ามุมมองทั้งสี่เชื่อมกันอย่างไร (Scenarios) รายละเอียดสะท้อน source ปัจจุบัน ไม่ได้อ้างว่าระบบเป็น distributed service หรือมี push แบบ real-time
 
